@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "CalorieAI",
+    "slug": "calorie-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#6750c8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.calorieai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Khane ki photo lene ke liye",
+        "NSPhotoLibraryUsageDescription": "Gallery se khane ki photo choose karne ke liye"
+      }
+    },
+    "android": {
+      "package": "com.yourname.calorieai",
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
+    },
+    "plugins": [
+      ["expo-image-picker", {
+        "photosPermission": "Gallery se khane ki photo lene ke liye"
+      }]
+    ]
+  }
+}
