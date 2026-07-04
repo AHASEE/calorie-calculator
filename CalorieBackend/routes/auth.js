@@ -20,7 +20,6 @@ router.post('/register', async (req, res) => {
     });
     if (error) return res.status(400).json({ error: error.message });
 
-    // Profile banao
     await supabase.from('profiles').insert({
       id: data.user.id,
       name,
@@ -28,7 +27,7 @@ router.post('/register', async (req, res) => {
       daily_goal: 2000,
     });
 
-    res.json({ message: 'Account ban gaya!', user: data.user });
+    res.json({ message: 'Account created successfully!', user: data.user });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -45,7 +44,7 @@ router.post('/login', async (req, res) => {
     if (error) return res.status(400).json({ error: error.message });
 
     res.json({
-      message: 'Login ho gaya!',
+      message: 'Login successful!',
       token: data.session.access_token,
       user: data.user,
     });

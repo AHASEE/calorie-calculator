@@ -11,16 +11,14 @@ const supabase = createClient(
 // Token verify middleware
 const verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token nahi mila!' });
-
+  if (!token) return res.status(401).json({ error: 'Token not found!' });
   const { data, error } = await supabase.auth.getUser(token);
-  if (error) return res.status(401).json({ error: 'Token galat hai!' });
-
+  if (error) return res.status(401).json({ error: 'Invalid token!' });
   req.user = data.user;
   next();
 };
 
-// SCAN SAVE KARO
+// POST /api/scans — Save scan
 router.post('/', verifyToken, async (req, res) => {
   const { food_name, calories, protein, carbs, fat, fiber, serving_size } = req.body;
   try {
@@ -36,13 +34,13 @@ router.post('/', verifyToken, async (req, res) => {
     }).select();
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json({ message: 'Scan save ho gaya!', scan: data[0] });
+    res.json({ message: 'Scan saved successfully!', scan: data[0] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// AAJ KI SCANS LO
+// GET /api/scans/today
 router.get('/today', verifyToken, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -63,7 +61,7 @@ router.get('/today', verifyToken, async (req, res) => {
   }
 });
 
-// POORI HISTORY LO
+// GET /api/scans/history
 router.get('/history', verifyToken, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -80,7 +78,7 @@ router.get('/history', verifyToken, async (req, res) => {
   }
 });
 
-// SCAN DELETE KARO
+// DELETE /api/scans/:id
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const { error } = await supabase
@@ -90,7 +88,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
       .eq('user_id', req.user.id);
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json({ message: 'Scan delete ho gaya!' });
+    res.json({ message: 'Scan deleted successfully!' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

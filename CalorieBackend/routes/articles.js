@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const https = require('https');
 
-const NEWS_API_KEY = 'e6aa4a0dcc294e19a7c1b2c016f2529d';
-const YOUTUBE_API_KEY = 'AIzaSyAVpA6dAjUXCD-FuEUvjYKTvUVN7v5PTgE';
+const NEWS_API_KEY    = process.env.NEWS_API_KEY    || 'e6aa4a0dcc294e19a7c1b2c016f2529d';
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || 'AIzaSyAVpA6dAjUXCD-FuEUvjYKTvUVN7v5PTgE';
 
 const CAT_QUERIES = {
   'Nutrition':     'healthy nutrition diet food',
@@ -14,10 +14,17 @@ const CAT_QUERIES = {
   'For You':       'health fitness nutrition wellness',
 };
 
-// Helper: https GET request
-function httpsGet(url) {
+// Helper: https GET with User-Agent
+function httpsGet(url, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const options = {
+      headers: {
+        'User-Agent': 'CalorieAI/1.0 (health and nutrition app)',
+        'Accept': 'application/json',
+        ...extraHeaders,
+      },
+    };
+    https.get(url, options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -35,7 +42,7 @@ router.get('/news', async (req, res) => {
 
   try {
     const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=12&apiKey=${NEWS_API_KEY}`;
-    const data = await httpsGet(url);
+    const data = await httpsGet(url, { 'X-Api-Key': NEWS_API_KEY });
 
     if (data.status !== 'ok') {
       return res.status(500).json({ success: false, message: data.message || 'NewsAPI error' });
