@@ -5,8 +5,9 @@ import {
   RefreshControl, Dimensions,
 } from 'react-native';
 
+import { API_URL } from '../constants/api';
 const { width } = Dimensions.get('window');
-const API_URL = 'http://192.168.80.209:3000';
+
 
 type Category = 'For You' | 'Nutrition' | 'Fitness' | 'Weight Loss' | 'Mental Health';
 
