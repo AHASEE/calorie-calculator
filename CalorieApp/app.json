@@ -1,51 +1,50 @@
 {
-"expo": {
-"name": "CalorieAI",
-"slug": "calorieai",
-"version": "1.0.0",
-"orientation": "portrait",
-"icon": "./assets/icon.png",
-"ios": {
-  "supportsTablet": false,
-  "bundleIdentifier": "com.yourname.calorieai",
-  "infoPlist": {
-    "NSCameraUsageDescription": "Khane ki photo lene ke liye",
-    "NSPhotoLibraryUsageDescription": "Gallery se khane ki photo choose karne ke liye"
+  "expo": {
+    "name": "CalorieAI",
+    "slug": "calorieai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.calorieai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Khane ki photo lene ke liye",
+        "NSPhotoLibraryUsageDescription": "Gallery se khane ki photo choose karne ke liye"
+      }
+    },
+    "android": {
+      "package": "com.yourname.calorieai",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gallery se khane ki photo lene ke liye",
+          "cameraPermission": "Khane ki photo lene ke liye"
+        }
+      ],
+      "expo-status-bar",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-web-browser"
+    ]
   }
-},
-
-"android": {
-  "package": "com.yourname.calorieai",
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/icon.png",
-    "backgroundColor": "#ffffff"
-  },
-  "permissions": [
-    "CAMERA",
-    "READ_EXTERNAL_STORAGE",
-    "WRITE_EXTERNAL_STORAGE"
-  ]
-},
-
-"plugins": [
-  [
-    "expo-image-picker",
-    {
-      "photosPermission": "Gallery se khane ki photo lene ke liye",
-      "cameraPermission": "Khane ki photo lene ke liye"
-    }
-  ],
-  "expo-status-bar",
-  "expo-font",
-  [
-    "expo-splash-screen",
-    {
-      "image": "./assets/splash.png",
-      "imageWidth": 200,
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    }
-  ]
-]
-}
 }
