@@ -19,11 +19,11 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
 
   const handleSignup = async () => {
     if (!name || !email || !password) {
-      Alert.alert('Error', 'Sab fields bhaaro!');
+      Alert.alert('Error', 'Please fill all fields!');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password kam az kam 6 characters ka hona chahiye!');
+      Alert.alert('Error', 'Password must be at least 6 characters long!');
       return;
     }
     setLoading(true);
@@ -35,14 +35,14 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
       });
       const data = await response.json();
       if (!response.ok) {
-        Alert.alert('Error', data.error || 'Signup fail ho gaya!');
+        Alert.alert('Error', data.error || 'Signup failed!');
         return;
       }
-      Alert.alert('Success! 🎉', 'Account ban gaya! Ab login karein.', [
+      Alert.alert('Success! 🎉', 'Account created! Now login.', [
         { text: 'OK', onPress: onGoToLogin }
       ]);
     } catch (e) {
-      Alert.alert('Error', 'Network masla — internet check karein!');
+      Alert.alert('Error', 'Network error — please check your internet connection!');
     } finally {
       setLoading(false);
     }
@@ -52,11 +52,11 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>CalorieAI 🥗</Text>
-        <Text style={styles.subtitle}>Naya account banayein</Text>
+        <Text style={styles.subtitle}>Create New Account</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Naam"
+          placeholder="Full Name"
           value={name}
           onChangeText={setName}
           placeholderTextColor="#aaa"
@@ -72,7 +72,7 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password (kam az kam 6 characters)"
+          placeholder="Password (at least 6 characters)"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -88,13 +88,13 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.btnText}>Signup</Text>
+            <Text style={styles.btnText}>Sign Up</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={onGoToLogin} style={styles.link}>
           <Text style={styles.linkText}>
-            Account hai? <Text style={styles.linkBold}>Login karein</Text>
+            Already have an account? <Text style={styles.linkBold}>Login here</Text>
           </Text>
         </TouchableOpacity>
       </View>

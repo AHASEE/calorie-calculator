@@ -5,11 +5,13 @@ import {
   SafeAreaView, StatusBar, Platform, RefreshControl,
   TextInput, Modal,
 } from 'react-native';
+import ArticleDetailScreen from './screens/ArticleDetailScreen'; // ✅ ADDED
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import CircularProgress from './components/CircularProgress';
 import NutrientBar from './components/NutrientBar';
 import StatCard from './components/StatCard';
+import WaterTracker from './components/WaterTracker';
 import { API_URL } from './constants/api';
 import { ThemeProvider, useTheme } from './components/ThemeContext';
 import LoginScreen from './screens/LoginScreen';
@@ -49,6 +51,12 @@ interface RecentScan {
   scanned_at: string;
 }
 
+interface StreakData {
+  current: number;
+  longest: number;
+  isActiveToday: boolean;
+}
+
 type ScanStage = 'idle' | 'identifying' | 'confirming' | 'fetching' | 'done';
 
 const PORTION_SIZES = [
@@ -58,7 +66,6 @@ const PORTION_SIZES = [
   { label: 'Custom', multiplier: null, desc: 'Enter grams' },
 ];
 
-// Food name se emoji guess karo
 const getFoodEmoji = (foodName: string): string => {
   const name = foodName.toLowerCase();
   if (name.includes('biryani') || name.includes('rice')) return '🍚';
@@ -80,6 +87,13 @@ const getFoodEmoji = (foodName: string): string => {
   return '🍱';
 };
 
+const getStreakBadge = (streak: number): string => {
+  if (streak >= 100) return '🥇';
+  if (streak >= 30)  return '🥈';
+  if (streak >= 7)   return '🥉';
+  return '🔥';
+};
+
 const ARTICLES = [
   { title: "10 Best Foods for Weight Loss", desc: "Discover top foods that help you lose weight naturally.", url: "https://www.healthline.com/nutrition/weight-loss-foods", img: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", source: "Healthline" },
   { title: "How Many Calories Per Day?", desc: "Calorie needs vary by age, sex, height, weight and activity.", url: "https://www.healthline.com/nutrition/how-many-calories-per-day", img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400", source: "Healthline" },
@@ -96,7 +110,7 @@ const VIDEOS = [
 ];
 
 // ── HEALTH HUB ────────────────────────────────────────────
-function HealthHub() {
+function HealthHub({ onSelectArticle }: { onSelectArticle: (a: any) => void }) { // ✅ UPDATED
   const { colors } = useTheme();
   const [tab, setTab] = React.useState<'articles' | 'videos'>('articles');
   return (
@@ -117,7 +131,7 @@ function HealthHub() {
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}>
         {tab === 'articles' && ARTICLES.map((a, i) => (
-          <TouchableOpacity key={i} onPress={() => Linking.openURL(a.url)} activeOpacity={0.85}
+          <TouchableOpacity key={i} onPress={() => onSelectArticle(a)} activeOpacity={0.85} // ✅ CHANGED
             style={{ backgroundColor: colors.card, borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 3 }}>
             <Image source={{ uri: a.img }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
             <View style={{ padding: 14 }}>
@@ -158,6 +172,7 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null); // ✅ ADDED
 
   const [scanStage, setScanStage] = useState<ScanStage>('idle');
   const [identifiedFood, setIdentifiedFood] = useState('');
@@ -172,6 +187,7 @@ function AppInner() {
   const [stats, setStats] = useState<DailyStats | null>(null);
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [streak, setStreak] = useState<StreakData>({ current: 0, longest: 0, isActiveToday: false });
 
   const fetchStats = useCallback(async () => {
     if (!token) return;
@@ -189,8 +205,43 @@ function AppInner() {
     finally { setLoadingStats(false); }
   }, [token]);
 
-  useEffect(() => { if (token) fetchStats(); }, [token, fetchStats]);
-  const onRefresh = async () => { setRefreshing(true); await fetchStats(); setRefreshing(false); };
+  const fetchStreak = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/streak`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) setStreak(data.streak);
+    } catch (e) { console.log('Streak fetch error:', e); }
+  }, [token]);
+
+  const updateStreak = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/streak/update`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStreak(data.streak);
+        if (data.milestone) {
+          Alert.alert(`${data.milestone.badge} Milestone!`, data.milestone.message, [{ text: 'Awesome! 🎉' }]);
+        }
+      }
+    } catch (e) { console.log('Streak update error:', e); }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) { fetchStats(); fetchStreak(); updateStreak(); }
+  }, [token]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchStats(), fetchStreak()]);
+    setRefreshing(false);
+  };
 
   const consumed  = stats?.totalCalories ?? 0;
   const remaining = stats?.remaining     ?? 0;
@@ -208,6 +259,20 @@ function AppInner() {
           currentName={stats?.name || currentUser?.user_metadata?.name || ''}
           onSave={(goal, name) => { setStats(prev => prev ? { ...prev, dailyGoal: goal, name } : null); setScreen('home'); fetchStats(); }}
           onSkip={() => setScreen('home')}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // ✅ ARTICLE DETAIL SCREEN CHECK - SHOW WHEN ARTICLE SELECTED
+  if (selectedArticle) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        <ArticleDetailScreen 
+          url={selectedArticle.url}
+          title={selectedArticle.title}
+          onGoBack={() => setSelectedArticle(null)}
         />
       </SafeAreaView>
     );
@@ -296,6 +361,7 @@ function AppInner() {
           body: JSON.stringify({ food_name: final.foodName, calories: final.totalCalories, protein: final.protein, carbs: final.carbs, fat: final.fat, fiber: final.fiber, serving_size: final.servingSize }),
         });
         await fetchStats();
+        await updateStreak();
       } catch (e) { console.log('Save error:', e); }
     }
   };
@@ -334,7 +400,7 @@ function AppInner() {
   if (activeTab === 2) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <HealthHub />
+      <HealthHub onSelectArticle={setSelectedArticle} /> {/* ✅ UPDATED */}
       <BottomNav />
     </SafeAreaView>
   );
@@ -342,7 +408,7 @@ function AppInner() {
   if (activeTab === 3) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <ArticlesScreen />
+      <ArticlesScreen onSelectArticle={setSelectedArticle} /> {/* ✅ UPDATED */}
       <BottomNav />
     </SafeAreaView>
   );
@@ -457,12 +523,11 @@ function AppInner() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <PortionModal />
 
-      {/* TOP NAV */}
       <View style={[styles.topNav, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={handleLogout}>
           <Ionicons name="menu" size={26} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.navTitle, { color: colors.text }]}>Calorie Calculator</Text>
+        <Text style={[styles.navTitle, { color: colors.text }]}>Alviva </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: colors.primaryLight }]}>
             <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
@@ -483,12 +548,38 @@ function AppInner() {
           <View style={styles.heroLeft}>
             <Text style={styles.heroHello}>Hello, {stats?.name || currentUser?.user_metadata?.name || 'User'} 👋</Text>
             <Text style={styles.heroSub}>Track your calories and{'\n'}achieve your goals</Text>
-            <TouchableOpacity style={styles.goalBadge} onPress={() => setScreen('goalSetup')}>
-              <Text style={styles.goalBadgeTxt}>🎯 Goal: {dailyGoal} kcal</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <TouchableOpacity style={styles.goalBadge} onPress={() => setScreen('goalSetup')}>
+                <Text style={styles.goalBadgeTxt}>🎯 Goal: {dailyGoal} kcal</Text>
+              </TouchableOpacity>
+              {streak.current > 0 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakBadgeTxt}>{getStreakBadge(streak.current)} {streak.current} day{streak.current !== 1 ? 's' : ''}</Text>
+                </View>
+              )}
+            </View>
           </View>
           <CircularProgress consumed={consumed} goal={dailyGoal} size={120} />
         </View>
+
+        {/* STREAK CARD */}
+        {streak.current > 0 && (
+          <View style={[styles.streakCard, { backgroundColor: colors.card }]}>
+            <View style={styles.streakLeft}>
+              <Text style={styles.streakFire}>{getStreakBadge(streak.current)}</Text>
+              <View>
+                <Text style={[styles.streakCount, { color: colors.text }]}>{streak.current} Day Streak!</Text>
+                <Text style={[styles.streakSub, { color: colors.textMuted }]}>
+                  {streak.isActiveToday ? '✅ Active today' : '⚠️ Log today to keep streak!'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.streakRight}>
+              <Text style={[styles.streakBest, { color: colors.textMuted }]}>Best</Text>
+              <Text style={[styles.streakBestNum, { color: colors.primary }]}>{streak.longest}</Text>
+            </View>
+          </View>
+        )}
 
         {/* TODAY OVERVIEW */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Today Overview</Text>
@@ -500,6 +591,9 @@ function AppInner() {
             <StatCard icon="📊" value={`${progress}%`} label="Progress"  />
           </View>
         )}
+
+        {/* WATER TRACKER */}
+        {token && <WaterTracker token={token} />}
 
         {/* SCAN CARD */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Scan Food to Calculate Calories</Text>
@@ -525,7 +619,6 @@ function AppInner() {
         {/* TODAY'S SCANS */}
         <View style={styles.rowBetween}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Scans</Text>
-          {/* View All → History tab pe le jaye */}
           <TouchableOpacity onPress={() => setActiveTab(4)}>
             <Text style={[styles.viewAll, { color: colors.primary }]}>View All →</Text>
           </TouchableOpacity>
@@ -537,7 +630,6 @@ function AppInner() {
           </View>
         ) : recentScans.map((s) => (
           <View key={s.id} style={[styles.recentItem, { backgroundColor: colors.card }]}>
-            {/* Food emoji based on food name */}
             <View style={[styles.recentEmoji, { backgroundColor: colors.primaryLight }]}>
               <Text style={{ fontSize: 26 }}>{getFoodEmoji(s.food_name)}</Text>
             </View>
@@ -568,7 +660,6 @@ function AppInner() {
   );
 }
 
-// ── ROOT ──────────────────────────────────────────────────
 export default function App() {
   return (
     <ThemeProvider>
@@ -577,7 +668,6 @@ export default function App() {
   );
 }
 
-// ── STYLES ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safe: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0 },
   topNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
@@ -589,8 +679,18 @@ const styles = StyleSheet.create({
   heroLeft: { flex: 1 },
   heroHello: { fontSize: 22, fontWeight: '900', color: 'white', marginBottom: 6 },
   heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', lineHeight: 19 },
-  goalBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginTop: 8 },
+  goalBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start' },
   goalBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  streakBadge: { backgroundColor: 'rgba(255,165,0,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start' },
+  streakBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  streakCard: { borderRadius: 16, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 2 },
+  streakLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  streakFire: { fontSize: 32 },
+  streakCount: { fontSize: 16, fontWeight: '900' },
+  streakSub: { fontSize: 12, marginTop: 2 },
+  streakRight: { alignItems: 'center' },
+  streakBest: { fontSize: 11, fontWeight: '600' },
+  streakBestNum: { fontSize: 22, fontWeight: '900' },
   sectionTitle: { fontSize: 16, fontWeight: '900', marginBottom: 12 },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   scanCard: { borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', padding: 14, flexDirection: 'row', gap: 14, marginBottom: 20, elevation: 2 },
@@ -602,7 +702,7 @@ const styles = StyleSheet.create({
   bracketTL: { top: 6, left: 6, borderTopWidth: 2.5, borderLeftWidth: 2.5, borderTopLeftRadius: 4 },
   bracketTR: { top: 6, right: 6, borderTopWidth: 2.5, borderRightWidth: 2.5, borderTopRightRadius: 4 },
   bracketBL: { bottom: 6, left: 6, borderBottomWidth: 2.5, borderLeftWidth: 2.5, borderBottomLeftRadius: 4 },
-  bracketBR: { bottom: 6, right: 6, borderBottomWidth: 2.5, borderRightWidth: 2.5, borderBottomRightRadius: 4 },
+  bracketBR: { bottom: 6, right: 6, borderBottomWidth: 2.5, borderRightWidth: 2.5, borderBottomLeftRadius: 4 },
   scanRight: { flex: 1, justifyContent: 'center' },
   scanTitle: { fontSize: 13, fontWeight: '800', marginBottom: 6 },
   scanSubtitle: { fontSize: 11, fontWeight: '600', lineHeight: 16, marginBottom: 12 },
