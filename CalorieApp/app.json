@@ -44,7 +44,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
-    ]
+      [
+        "expo-web-browser",
+        {
+          "experimentalLauncherActivity": false
+        }
+      ]
+    ],
+    "scheme": "alviva"
   }
 }
