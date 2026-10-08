@@ -20,6 +20,7 @@ import ArticlesScreen from './screens/ArticlesScreen';
 import GoalSetupScreen from './screens/GoalSetupScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import { Linking } from 'react-native';
+import { supabase } from './lib/supabase';
 
 // ── TYPES ─────────────────────────────────────────────────
 interface ScanResult {
@@ -168,6 +169,7 @@ function AppInner() {
 
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const [screen, setScreen] = useState<'login' | 'signup' | 'home' | 'goalSetup'>('login');
   const [activeTab, setActiveTab] = useState(0);
   const [image, setImage] = useState<string | null>(null);
@@ -189,13 +191,79 @@ function AppInner() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [streak, setStreak] = useState<StreakData>({ current: 0, longest: 0, isActiveToday: false });
 
+  const timezone =
+    Intl.DateTimeFormat()
+      .resolvedOptions()
+      .timeZone || 'UTC';
+
+  useEffect(() => {
+    let mounted = true;
+
+    const restoreSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      if (session?.access_token && session.user) {
+        setToken(session.access_token);
+        setCurrentUser(session.user);
+        setScreen('home');
+      }
+
+      setAuthChecking(false);
+    };
+
+    restoreSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+
+        if (session?.access_token && session.user) {
+          setToken(session.access_token);
+          setCurrentUser(session.user);
+
+          if (
+            event === 'SIGNED_IN' ||
+            event === 'INITIAL_SESSION'
+          ) {
+            setScreen('home');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setToken(null);
+          setCurrentUser(null);
+          setScreen('login');
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const fetchStats = useCallback(async () => {
     if (!token) return;
     setLoadingStats(true);
     try {
       const [statsRes, scansRes] = await Promise.all([
-        fetch(`${API_URL}/api/goals/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/scans/today`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/goals/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Timezone': timezone,
+          },
+        }),
+        fetch(`${API_URL}/api/scans/today`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Timezone': timezone,
+          },
+        }),
       ]);
       const statsData = await statsRes.json();
       const scansData = await scansRes.json();
@@ -209,7 +277,10 @@ function AppInner() {
     if (!token) return;
     try {
       const res = await fetch(`${API_URL}/api/streak`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
+        },
       });
       const data = await res.json();
       if (data.success) setStreak(data.streak);
@@ -221,7 +292,10 @@ function AppInner() {
     try {
       const res = await fetch(`${API_URL}/api/streak/update`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
+        },
       });
       const data = await res.json();
       if (data.success) {
@@ -234,7 +308,10 @@ function AppInner() {
   }, [token]);
 
   useEffect(() => {
-    if (token) { fetchStats(); fetchStreak(); updateStreak(); }
+    if (token) {
+      fetchStats();
+      fetchStreak();
+    }
   }, [token]);
 
   const onRefresh = async () => {
@@ -247,6 +324,14 @@ function AppInner() {
   const remaining = stats?.remaining     ?? 0;
   const dailyGoal = stats?.dailyGoal     ?? 2000;
   const progress  = stats?.progress      ?? 0;
+
+  if (authChecking) {
+    return (
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </SafeAreaView>
+    );
+  }
 
   if (screen === 'login') return <LoginScreen onLogin={(t, u) => { setToken(t); setCurrentUser(u); setScreen('home'); }} onGoToSignup={() => setScreen('signup')} />;
   if (screen === 'signup') return <SignupScreen onSignup={() => setScreen('login')} onGoToLogin={() => setScreen('login')} />;
@@ -304,7 +389,10 @@ function AppInner() {
     try {
       const res = await fetch(`${API_URL}/api/ai/identify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ imageBase64 }),
       });
       const data = await res.json();
@@ -320,7 +408,10 @@ function AppInner() {
     try {
       const res = await fetch(`${API_URL}/api/ai/nutrition`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ foodName }),
       });
       const data = await res.json();
@@ -357,7 +448,11 @@ function AppInner() {
       try {
         await fetch(`${API_URL}/api/scans`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'X-Timezone': timezone,
+          },
           body: JSON.stringify({ food_name: final.foodName, calories: final.totalCalories, protein: final.protein, carbs: final.carbs, fat: final.fat, fiber: final.fiber, serving_size: final.servingSize }),
         });
         await fetchStats();
@@ -372,10 +467,30 @@ function AppInner() {
     setSelectedPortion('Medium'); setCustomGrams(''); setShowPortionModal(false);
   };
 
-  const handleLogout = () => Alert.alert('Logout', 'Are you sure you want to logout?', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Logout', style: 'destructive', onPress: () => { setToken(null); setCurrentUser(null); setScreen('login'); setStats(null); setRecentScans([]); resetScan(); } },
-  ]);
+  const handleLogout = () =>
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await supabase.auth.signOut();
+            setToken(null);
+            setCurrentUser(null);
+            setScreen('login');
+            setStats(null);
+            setRecentScans([]);
+            resetScan();
+          },
+        },
+      ]
+    );
 
   const TABS = [
     { icon: 'home' as const,       label: 'Home'     },
