@@ -19,8 +19,10 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(
-  supabaseUrl,
-  supabaseKey,
+  supabaseUrl ||
+    'https://placeholder.supabase.co',
+  supabaseKey ||
+    'placeholder-anon-key',
   {
     auth: {
       ...(Platform.OS !== 'web'
