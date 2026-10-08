@@ -7,14 +7,14 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourname.calorieai",
+      "bundleIdentifier": "com.alviva.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Khane ki photo lene ke liye",
         "NSPhotoLibraryUsageDescription": "Gallery se khane ki photo choose karne ke liye"
       }
     },
     "android": {
-      "package": "com.yourname.calorieai",
+      "package": "com.alviva.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
