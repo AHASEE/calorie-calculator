@@ -5,6 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "alviva",
+    "owner": "haseeb121",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.alviva.app",
@@ -51,6 +53,10 @@
         }
       ]
     ],
-    "scheme": "alviva"
+    "extra": {
+      "eas": {
+        "projectId": "2de80a49-db14-4146-a187-100017a75511"
+      }
+    }
   }
 }
