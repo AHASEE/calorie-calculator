@@ -10,7 +10,6 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
-import { makeRedirectUri } from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -19,10 +18,7 @@ import { supabase } from '../lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_REDIRECT_URI = makeRedirectUri({
-  scheme: 'alviva',
-  path: 'auth/callback',
-});
+const GOOGLE_REDIRECT_URI = 'alviva://auth/callback';
 
 interface Props {
   onLogin: (token: string, user: any) => void;
