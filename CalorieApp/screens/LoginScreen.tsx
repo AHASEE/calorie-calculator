@@ -738,13 +738,13 @@ const styles =
       flex: 1,
       height: 1,
       backgroundColor:
-        '#dddddd',
+        COLORS.border,
     },
 
     dividerText: {
       fontSize: 11,
       fontWeight: '700',
-      color: '#999',
+      color: COLORS.textLight,
     },
 
     inputContainer: {
@@ -754,20 +754,20 @@ const styles =
     label: {
       fontSize: 13,
       fontWeight: '700',
-      color: '#333',
+      color: COLORS.text,
       marginBottom: 8,
     },
 
     input: {
       backgroundColor:
-        'white',
+        COLORS.card,
       borderRadius: 12,
       padding: 14,
       fontSize: 15,
       borderWidth: 1.5,
       borderColor:
-        '#e0e0e0',
-      color: '#111',
+        COLORS.border,
+      color: COLORS.text,
       fontWeight: '500',
     },
 
