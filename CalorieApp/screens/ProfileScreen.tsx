@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator,
+  TextInput, Alert, ActivityIndicator, Modal,
 } from 'react-native';
 import { useTheme } from '../components/ThemeContext';
 import { API_URL } from '../constants/api';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   token: string;
   onSave?: (suggestedGoal: number) => void;
   onEditGoal?: () => void;
   onLogout?: () => void;
+  onAccountDeleted?: () => void;
 }
 
 interface ProfileData {
@@ -34,7 +36,7 @@ const ACTIVITY_LEVELS = [
   { key: 'active',    label: 'Active',    desc: '6-7 days/week' },
 ];
 
-export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: Props) {
+export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onAccountDeleted }: Props) {
   const { colors } = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,11 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: P
   const [height, setHeight] = useState('');
   const [gender, setGender] = useState('');
   const [activityLevel, setActivityLevel] = useState('moderate');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [requiresDeletePassword, setRequiresDeletePassword] = useState(false);
 
   // Live BMI calculate karo as user types
   const liveBMI = weight && height
@@ -128,6 +135,84 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: P
     }
   };
 
+  const openDeleteAccount = async () => {
+    setDeleteConfirm('');
+    setDeletePassword('');
+    setRequiresDeletePassword(false);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const providers = Array.isArray(user?.app_metadata?.providers)
+        ? user?.app_metadata?.providers
+        : [];
+
+      setRequiresDeletePassword(providers.includes('email'));
+    } catch (error) {
+      console.log('Unable to detect auth provider:', error);
+    }
+
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm.trim().toUpperCase() !== 'DELETE') {
+      Alert.alert('Confirmation required', 'Type DELETE to confirm permanent account deletion.');
+      return;
+    }
+
+    if (requiresDeletePassword && !deletePassword) {
+      Alert.alert('Password required', 'Enter your password to delete this account.');
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          confirm: 'DELETE',
+          ...(deletePassword ? { password: deletePassword } : {}),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.code === 'PASSWORD_REQUIRED') {
+          setRequiresDeletePassword(true);
+        }
+
+        Alert.alert(
+          'Unable to delete account',
+          data.error || 'Please try again.'
+        );
+        return;
+      }
+
+      setShowDeleteModal(false);
+
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (error) {
+        console.log('Local sign out after deletion:', error);
+      }
+
+      onAccountDeleted?.();
+    } catch (error) {
+      Alert.alert('Network error', 'Please check your connection and try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingWrap, { backgroundColor: colors.background }]}>
@@ -137,7 +222,8 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: P
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
 
       <Text style={[styles.title, { color: colors.text }]}>👤 Your Profile</Text>
       <Text style={[styles.subtitle, { color: colors.textMuted }]}>Help us personalize your experience</Text>
@@ -270,13 +356,24 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: P
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.accountRow}
+          style={[styles.accountRow, { borderBottomColor: colors.border }]}
           onPress={onLogout}
           disabled={!onLogout}
         >
           <View>
-            <Text style={[styles.accountRowTitle, { color: colors.error }]}>Log out</Text>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>Log out</Text>
             <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>Sign out of Alviva on this device</Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.textMuted }]}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.accountRow}
+          onPress={openDeleteAccount}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.error }]}>Delete account</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>Permanently delete your Alviva data</Text>
           </View>
           <Text style={[styles.accountArrow, { color: colors.error }]}>›</Text>
         </TouchableOpacity>
@@ -286,8 +383,73 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: P
         BMI and calorie goals are estimates and are not medical advice.
       </Text>
 
-      <View style={{ height: 30 }} />
-    </ScrollView>
+        <View style={{ height: 30 }} />
+      </ScrollView>
+
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !deleteLoading && setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.deleteModal, { backgroundColor: colors.card }]}>
+            <Text style={[styles.deleteTitle, { color: colors.error }]}>Delete account?</Text>
+            <Text style={[styles.deleteBody, { color: colors.textMuted }]}>
+              This permanently deletes your profile, food scans and water history. This action cannot be undone.
+            </Text>
+
+            <Text style={[styles.label, { color: colors.text }]}>Type DELETE to confirm</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+              value={deleteConfirm}
+              onChangeText={setDeleteConfirm}
+              placeholder="DELETE"
+              placeholderTextColor={colors.textLight}
+              autoCapitalize="characters"
+              editable={!deleteLoading}
+            />
+
+            {requiresDeletePassword && (
+              <>
+                <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.textLight}
+                  secureTextEntry
+                  editable={!deleteLoading}
+                />
+              </>
+            )}
+
+            <View style={styles.deleteActions}>
+              <TouchableOpacity
+                style={[styles.cancelDeleteBtn, { borderColor: colors.border }]}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+              >
+                <Text style={[styles.cancelDeleteText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.confirmDeleteBtn, { backgroundColor: colors.error }, deleteLoading && { opacity: 0.6 }]}
+                onPress={handleDeleteAccount}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.confirmDeleteText}>Delete forever</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -322,4 +484,13 @@ const styles = StyleSheet.create({
   accountRowSub: { fontSize: 11, marginTop: 3 },
   accountArrow: { fontSize: 26, fontWeight: '500' },
   healthNote: { fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  deleteModal: { width: '100%', maxWidth: 440, borderRadius: 20, padding: 20 },
+  deleteTitle: { fontSize: 22, fontWeight: '900', marginBottom: 8 },
+  deleteBody: { fontSize: 13, lineHeight: 19, marginBottom: 20 },
+  deleteActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  cancelDeleteBtn: { flex: 1, minHeight: 48, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  cancelDeleteText: { fontSize: 14, fontWeight: '800' },
+  confirmDeleteBtn: { flex: 1.4, minHeight: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  confirmDeleteText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 });
