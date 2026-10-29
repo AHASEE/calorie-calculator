@@ -11,8 +11,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.alviva.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Khane ki photo lene ke liye",
-        "NSPhotoLibraryUsageDescription": "Gallery se khane ki photo choose karne ke liye"
+        "NSCameraUsageDescription": "Allow Alviva to use your camera to scan meals and estimate nutrition.",
+        "NSPhotoLibraryUsageDescription": "Allow Alviva to choose meal photos from your library for nutrition estimates."
       }
     },
     "android": {
@@ -20,19 +20,14 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
+      }
     },
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "Gallery se khane ki photo lene ke liye",
-          "cameraPermission": "Khane ki photo lene ke liye"
+          "photosPermission": "Allow Alviva to choose meal photos from your library for nutrition estimates.",
+          "cameraPermission": "Allow Alviva to use your camera to scan meals and estimate nutrition."
         }
       ],
       "expo-status-bar",
