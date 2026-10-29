@@ -6,10 +6,10 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Pressable,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 
