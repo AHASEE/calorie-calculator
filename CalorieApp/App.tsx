@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { colors } from './constants/colors';
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StyleSheet, Alert, ActivityIndicator,
@@ -578,7 +577,7 @@ function AppInner() {
       <>
         <Text style={[styles.scanTitle, { color: colors.text }]}>Find calories in your food</Text>
         <Text style={[styles.scanSubtitle, { color: colors.textMuted }]}>Take a photo — AI identifies, you confirm!</Text>
-        <TouchableOpacity style={[styles.scanBtn, { backgroundColor: colors.primary }, !image && styles.scanBtnDisabled]} onPress={identifyFood} disabled={!image} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.scanBtn, { backgroundColor: colors.accent }, !image && styles.scanBtnDisabled]} onPress={identifyFood} disabled={!image} activeOpacity={0.85}>
           <Ionicons name="camera" size={15} color="white" style={{ marginRight: 5 }} />
           <Text style={styles.scanBtnText}>Scan Food</Text>
         </TouchableOpacity>
