@@ -14,6 +14,7 @@ import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 
 import { API_URL } from '../constants/api';
+import { COLORS } from '../constants/theme';
 import { supabase } from '../lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -641,7 +642,7 @@ const styles =
     safe: {
       flex: 1,
       backgroundColor:
-        '#f5f4fc',
+        COLORS.background,
     },
 
     scrollContent: {
@@ -663,20 +664,20 @@ const styles =
     title: {
       fontSize: 36,
       fontWeight: '900',
-      color: '#6750c8',
+      color: COLORS.primary,
       marginBottom: 8,
     },
 
     subtitle: {
       fontSize: 18,
       fontWeight: '700',
-      color: '#333',
+      color: COLORS.text,
       marginBottom: 6,
     },
 
     description: {
       fontSize: 13,
-      color: '#888',
+      color: COLORS.textMuted,
       fontWeight: '500',
     },
 
@@ -706,7 +707,7 @@ const styles =
       borderRadius: 14,
       borderWidth: 1,
       borderColor:
-        '#e0e0e0',
+        COLORS.border,
       alignItems: 'center',
       justifyContent:
         'center',
@@ -786,14 +787,14 @@ const styles =
 
     btn: {
       backgroundColor:
-        '#6750c8',
+        COLORS.primary,
       borderRadius: 12,
       padding: 16,
       alignItems: 'center',
       marginTop: 16,
       elevation: 4,
       shadowColor:
-        '#6750c8',
+        COLORS.primary,
       shadowOffset: {
         width: 0,
         height: 4,
@@ -820,7 +821,7 @@ const styles =
       paddingTop: 20,
       borderTopWidth: 1,
       borderTopColor:
-        '#e0e0e0',
+        COLORS.border,
     },
 
     footerText: {
@@ -831,7 +832,7 @@ const styles =
 
     signUpLink: {
       fontSize: 14,
-      color: '#6750c8',
+      color: COLORS.primary,
       fontWeight: '800',
       textDecorationLine:
         'underline',
