@@ -51,23 +51,23 @@ interface Video {
 }
 
 const COLORS = {
-  primary: '#6C63FF',
-  primaryDark: '#554CE6',
-  primarySoft: '#F0EEFF',
+  primary: '#075B3A',
+  primaryDark: '#064E35',
+  primarySoft: '#E8F3EC',
 
-  background: '#F7F8FC',
+  background: '#F7FAF5',
   surface: '#FFFFFF',
 
-  text: '#17171C',
-  secondary: '#70717B',
-  muted: '#A4A5AE',
+  text: '#163326',
+  secondary: '#718077',
+  muted: '#9AA79F',
 
-  border: '#ECECF2',
+  border: '#E2EAE4',
 
   green: '#188B5B',
   greenSoft: '#EAF8F1',
 
-  orange: '#E78A3B',
+  orange: '#FF7A00',
   orangeSoft: '#FFF3E7',
 
   pink: '#D84D76',
@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
 
  videoCard: {
   width: '100%',
-  backgroundColor: '#17171C',   // pehle COLORS.surface tha
+  backgroundColor: COLORS.surface,
   borderRadius: 16,
   overflow: 'hidden',
   marginBottom: 14,
