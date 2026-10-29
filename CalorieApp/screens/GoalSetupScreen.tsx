@@ -4,6 +4,7 @@ import {
   StyleSheet, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { API_URL } from '../constants/api';
+import { COLORS } from '../constants/theme';
 
 interface Props {
   token: string;
@@ -20,7 +21,6 @@ const GOAL_PRESETS = [
   { label: '🔥 Very Active',  cal: 3000, desc: 'High activity level' },
 ];
 
-const PURPLE = '#6C63FF';
 
 export default function GoalSetupScreen({ token, currentGoal, currentName, onSave, onSkip }: Props) {
   const [name, setName] = useState(currentName || '');
@@ -88,8 +88,8 @@ export default function GoalSetupScreen({ token, currentGoal, currentName, onSav
             onPress={() => { setSelectedGoal(p.cal); setShowCustom(false); }}
             activeOpacity={0.8}
           >
-            <Text style={[styles.presetLabel, selectedGoal === p.cal && !showCustom && { color: PURPLE }]}>{p.label}</Text>
-            <Text style={[styles.presetCal, selectedGoal === p.cal && !showCustom && { color: PURPLE }]}>{p.cal} kcal</Text>
+            <Text style={[styles.presetLabel, selectedGoal === p.cal && !showCustom && { color: COLORS.primary }]}>{p.label}</Text>
+            <Text style={[styles.presetCal, selectedGoal === p.cal && !showCustom && { color: COLORS.primary }]}>{p.cal} kcal</Text>
             <Text style={styles.presetDesc}>{p.desc}</Text>
           </TouchableOpacity>
         ))}
@@ -133,23 +133,23 @@ export default function GoalSetupScreen({ token, currentGoal, currentName, onSav
 }
 
 const styles = StyleSheet.create({
-  container:    { padding: 24, paddingBottom: 48 },
-  title:        { fontSize: 26, fontWeight: '900', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' },
-  subtitle:     { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 24 },
-  label:        { fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 10 },
-  input:        { backgroundColor: '#fff', borderRadius: 14, padding: 16, fontSize: 15, marginBottom: 16, borderWidth: 1, borderColor: '#eee', color: '#111', elevation: 2 },
+  container:    { flexGrow: 1, padding: 24, paddingBottom: 48, backgroundColor: COLORS.background },
+  title:        { fontSize: 26, fontWeight: '900', color: COLORS.text, marginBottom: 6, textAlign: 'center' },
+  subtitle:     { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 },
+  label:        { fontSize: 14, fontWeight: '700', color: COLORS.text, marginBottom: 10 },
+  input:        { backgroundColor: COLORS.card, borderRadius: 14, padding: 16, fontSize: 15, marginBottom: 16, borderWidth: 1, borderColor: COLORS.border, color: COLORS.text, elevation: 2 },
   presetGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   presetCard:   { width: '47%', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: '#eee', elevation: 2 },
-  presetCardOn: { borderColor: PURPLE, backgroundColor: '#f0eeff' },
-  presetLabel:  { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 4 },
+  presetCardOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  presetLabel:  { fontSize: 13, fontWeight: '700', color: COLORS.textMuted, marginBottom: 4 },
   presetCal:    { fontSize: 20, fontWeight: '900', color: '#1a1a2e', marginBottom: 2 },
-  presetDesc:   { fontSize: 11, color: '#aaa' },
-  customBtn:    { borderWidth: 1.5, borderColor: PURPLE, borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
-  customBtnTxt: { color: PURPLE, fontWeight: '700', fontSize: 14 },
-  summary:      { backgroundColor: PURPLE, borderRadius: 18, padding: 20, alignItems: 'center', marginTop: 8, marginBottom: 16 },
+  presetDesc:   { fontSize: 11, color: COLORS.textLight },
+  customBtn:    { borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
+  customBtnTxt: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
+  summary:      { backgroundColor: COLORS.primary, borderRadius: 18, padding: 20, alignItems: 'center', marginTop: 8, marginBottom: 16 },
   summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 4 },
   summaryVal:   { color: '#fff', fontSize: 28, fontWeight: '900' },
-  saveBtn:      { backgroundColor: PURPLE, borderRadius: 16, paddingVertical: 16, alignItems: 'center', elevation: 4, marginBottom: 12 },
+  saveBtn:      { backgroundColor: COLORS.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', elevation: 4, marginBottom: 12 },
   saveBtnTxt:   { color: '#fff', fontSize: 16, fontWeight: '800' },
   skipBtn:      { alignItems: 'center', paddingVertical: 8 },
   skipTxt:      { color: '#aaa', fontSize: 13 },
