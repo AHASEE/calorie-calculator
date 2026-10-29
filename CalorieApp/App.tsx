@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StyleSheet, Alert, ActivityIndicator,
@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import ArticleDetailScreen from './screens/ArticleDetailScreen'; // ✅ ADDED
 import * as ImagePicker from 'expo-image-picker';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { Ionicons } from '@expo/vector-icons';
 import CircularProgress from './components/CircularProgress';
 import NutrientBar from './components/NutrientBar';
@@ -20,6 +21,7 @@ import ArticlesScreen from './screens/ArticlesScreen';
 import GoalSetupScreen from './screens/GoalSetupScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import { Linking } from 'react-native';
 import { supabase } from './lib/supabase';
 
@@ -171,7 +173,7 @@ function AppInner() {
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authChecking, setAuthChecking] = useState(true);
-  const [screen, setScreen] = useState<'login' | 'signup' | 'home' | 'goalSetup'>('login');
+  const [screen, setScreen] = useState<'login' | 'signup' | 'home' | 'goalSetup' | 'resetPassword'>('login');
   const [activeTab, setActiveTab] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -191,11 +193,96 @@ function AppInner() {
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [streak, setStreak] = useState<StreakData>({ current: 0, longest: 0, isActiveToday: false });
+  const passwordRecoveryRef = useRef(false);
 
   const timezone =
     Intl.DateTimeFormat()
       .resolvedOptions()
       .timeZone || 'UTC';
+
+  useEffect(() => {
+    let active = true;
+
+    const handleRecoveryUrl = async (url?: string | null) => {
+      if (!url || !url.toLowerCase().includes('type=recovery')) {
+        return;
+      }
+
+      passwordRecoveryRef.current = true;
+
+      try {
+        const { params, errorCode } = QueryParams.getQueryParams(url);
+
+        if (errorCode) {
+          throw new Error(String(errorCode));
+        }
+
+        const accessToken =
+          typeof params.access_token === 'string'
+            ? params.access_token
+            : '';
+
+        const refreshToken =
+          typeof params.refresh_token === 'string'
+            ? params.refresh_token
+            : '';
+
+        const code =
+          typeof params.code === 'string'
+            ? params.code
+            : '';
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            throw error;
+          }
+        } else if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            throw error;
+          }
+        } else {
+          throw new Error('Password recovery session was not found');
+        }
+
+        if (!active) return;
+
+        setAuthChecking(false);
+        setScreen('resetPassword');
+      } catch (error: any) {
+        passwordRecoveryRef.current = false;
+
+        if (active) {
+          Alert.alert(
+            'Reset link problem',
+            error?.message || 'Please request a new password reset link.'
+          );
+        }
+      }
+    };
+
+    Linking.getInitialURL()
+      .then(handleRecoveryUrl)
+      .catch(() => {});
+
+    const subscription = Linking.addEventListener(
+      'url',
+      ({ url }) => {
+        handleRecoveryUrl(url);
+      }
+    );
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -210,7 +297,10 @@ function AppInner() {
       if (session?.access_token && session.user) {
         setToken(session.access_token);
         setCurrentUser(session.user);
-        setScreen('home');
+
+        if (!passwordRecoveryRef.current) {
+          setScreen('home');
+        }
       }
 
       setAuthChecking(false);
@@ -229,8 +319,9 @@ function AppInner() {
           setCurrentUser(session.user);
 
           if (
-            event === 'SIGNED_IN' ||
-            event === 'INITIAL_SESSION'
+            !passwordRecoveryRef.current &&
+            (event === 'SIGNED_IN' ||
+              event === 'INITIAL_SESSION')
           ) {
             setScreen('home');
           }
@@ -336,6 +427,19 @@ function AppInner() {
 
   if (screen === 'login') return <LoginScreen onLogin={(t, u) => { setToken(t); setCurrentUser(u); setScreen('home'); }} onGoToSignup={() => setScreen('signup')} />;
   if (screen === 'signup') return <SignupScreen onSignup={() => setScreen('login')} onGoToLogin={() => setScreen('login')} />;
+  if (screen === 'resetPassword') {
+    return (
+      <ResetPasswordScreen
+        onComplete={() => {
+          passwordRecoveryRef.current = false;
+          setToken(null);
+          setCurrentUser(null);
+          setActiveTab(0);
+          setScreen('login');
+        }}
+      />
+    );
+  }
   if (screen === 'goalSetup') {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -468,6 +572,18 @@ function AppInner() {
     setSelectedPortion('Medium'); setCustomGrams(''); setShowPortionModal(false);
   };
 
+  const handleAccountDeleted = () => {
+    passwordRecoveryRef.current = false;
+    setToken(null);
+    setCurrentUser(null);
+    setStats(null);
+    setRecentScans([]);
+    setStreak({ current: 0, longest: 0, isActiveToday: false });
+    setActiveTab(0);
+    resetScan();
+    setScreen('login');
+  };
+
   const handleLogout = () =>
     Alert.alert(
       'Logout',
@@ -537,6 +653,7 @@ function AppInner() {
         onSave={() => fetchStats()}
         onEditGoal={() => setScreen('goalSetup')}
         onLogout={handleLogout}
+        onAccountDeleted={handleAccountDeleted}
       />
       <BottomNav />
     </SafeAreaView>
