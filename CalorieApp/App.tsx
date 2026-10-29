@@ -2,9 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StyleSheet, Alert, ActivityIndicator,
-  SafeAreaView, StatusBar, Platform, RefreshControl,
+  StatusBar, RefreshControl,
   TextInput, Modal,
 } from 'react-native';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from 'react-native-safe-area-context';
 import ArticleDetailScreen from './screens/ArticleDetailScreen'; // ✅ ADDED
 import * as ImagePicker from 'expo-image-picker';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
@@ -970,14 +974,16 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0 },
+  safe: { flex: 1 },
   topNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
   navTitle: { fontSize: 17, fontWeight: '900' },
   themeToggle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -1037,7 +1043,7 @@ const styles = StyleSheet.create({
   recentKcal: { fontSize: 14, fontWeight: '900' },
   recentTime: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   nutrientsCard: { borderRadius: 20, padding: 18, marginBottom: 4, elevation: 2 },
-  bottomNav: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 24 : 12, elevation: 8 },
+  bottomNav: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10, paddingBottom: 12, elevation: 8 },
   navTab: { flex: 1, alignItems: 'center', gap: 2 },
   navLabel: { fontSize: 11, fontWeight: '600' },
   navLabelActive: { fontWeight: '800' },
