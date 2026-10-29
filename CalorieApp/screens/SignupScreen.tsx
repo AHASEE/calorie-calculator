@@ -22,8 +22,8 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
       Alert.alert('Error', 'Please fill all fields!');
       return;
     }
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long!');
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long!');
       return;
     }
     setLoading(true);
@@ -51,7 +51,7 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.title}>CalorieAI 🥗</Text>
+        <Text style={styles.title}>Alviva 🥗</Text>
         <Text style={styles.subtitle}>Create New Account</Text>
 
         <TextInput
@@ -72,7 +72,7 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password (at least 6 characters)"
+          placeholder="Password (at least 8 characters)"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -122,13 +122,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   btn: {
-    backgroundColor: '#6750c8', borderRadius: 14,
+    backgroundColor: COLORS.primary, borderRadius: 14,
     padding: 16, alignItems: 'center', marginTop: 8,
-    shadowColor: '#6750c8', shadowOffset: { width: 0, height: 4 },
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   btnText: { color: 'white', fontSize: 16, fontWeight: '800' },
   link: { marginTop: 20, alignItems: 'center' },
   linkText: { fontSize: 14, color: '#888' },
-  linkBold: { color: '#6750c8', fontWeight: '800' },
+  linkBold: { color: COLORS.primary, fontWeight: '800' },
 });
