@@ -19,6 +19,7 @@ import SignupScreen from './screens/SignupScreen';
 import ArticlesScreen from './screens/ArticlesScreen';
 import GoalSetupScreen from './screens/GoalSetupScreen';
 import HistoryScreen from './screens/HistoryScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import { Linking } from 'react-native';
 import { supabase } from './lib/supabase';
 
@@ -493,11 +494,11 @@ function AppInner() {
     );
 
   const TABS = [
-    { icon: 'home' as const,       label: 'Home'     },
-    { icon: 'restaurant' as const, label: 'Food'     },
-    { icon: 'fitness' as const,    label: 'Exercise' },
-    { icon: 'newspaper' as const,  label: 'Articles' },
-    { icon: 'time' as const,       label: 'History'  },
+    { icon: 'home' as const,        label: 'Home'     },
+    { icon: 'camera' as const,      label: 'Scan'     },
+    { icon: 'stats-chart' as const, label: 'Progress' },
+    { icon: 'book' as const,        label: 'Learn'    },
+    { icon: 'person' as const,      label: 'Profile'  },
   ];
 
   const BottomNav = () => (
@@ -515,7 +516,7 @@ function AppInner() {
   if (activeTab === 2) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <HealthHub onSelectArticle={setSelectedArticle} /> {/* ✅ UPDATED */}
+      <HistoryScreen token={token!} dailyGoal={dailyGoal} />
       <BottomNav />
     </SafeAreaView>
   );
@@ -523,7 +524,7 @@ function AppInner() {
   if (activeTab === 3) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <ArticlesScreen onSelectArticle={setSelectedArticle} /> {/* ✅ UPDATED */}
+      <ArticlesScreen />
       <BottomNav />
     </SafeAreaView>
   );
@@ -531,7 +532,12 @@ function AppInner() {
   if (activeTab === 4) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <HistoryScreen token={token!} dailyGoal={dailyGoal} />
+      <ProfileScreen
+        token={token!}
+        onSave={() => fetchStats()}
+        onEditGoal={() => setScreen('goalSetup')}
+        onLogout={handleLogout}
+      />
       <BottomNav />
     </SafeAreaView>
   );
@@ -633,21 +639,91 @@ function AppInner() {
     return null;
   };
 
+  if (activeTab === 1) return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <PortionModal />
+
+      <View style={[styles.topNav, { backgroundColor: colors.background }]}>
+        <View>
+          <Text style={[styles.navTitle, { color: colors.text }]}>Scan Meal</Text>
+          <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>Snap. Confirm. Track.</Text>
+        </View>
+        <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: colors.primaryLight }]}>
+          <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 28 }}
+      >
+        <View style={{ backgroundColor: colors.primary, borderRadius: 22, padding: 18, marginBottom: 18 }}>
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>Know your meal in seconds</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 19, marginTop: 5 }}>
+            Take a clear photo of your food. Alviva identifies it, then you confirm the portion before saving.
+          </Text>
+        </View>
+
+        <View style={[styles.scanCard, { backgroundColor: colors.card, borderColor: colors.accent }]}>
+          <TouchableOpacity
+            style={[styles.imageBox, { backgroundColor: colors.primaryLight }]}
+            onPress={showImageOptions}
+            activeOpacity={0.85}
+          >
+            {image ? (
+              <>
+                <Image source={{ uri: image }} style={styles.foodImage} />
+                {(['tl','tr','bl','br'] as const).map(corner => (
+                  <View
+                    key={corner}
+                    style={[
+                      styles.bracket,
+                      corner === 'tl' ? styles.bracketTL :
+                      corner === 'tr' ? styles.bracketTR :
+                      corner === 'bl' ? styles.bracketBL : styles.bracketBR,
+                    ]}
+                  />
+                ))}
+              </>
+            ) : (
+              <View style={styles.uploadPlaceholder}>
+                <Ionicons name="camera" size={32} color={colors.primary} />
+                <Text style={[styles.uploadText, { color: colors.primary }]}>Camera or gallery</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.scanRight}>{renderScanContent()}</View>
+        </View>
+
+        <View style={[styles.nutrientsCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Better scan tips</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, lineHeight: 19 }}>• Use good lighting and keep the full meal visible.</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, lineHeight: 19 }}>• Confirm the food name before nutrition is calculated.</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, lineHeight: 19 }}>• Adjust portion size for a more useful estimate.</Text>
+        </View>
+      </ScrollView>
+
+      <BottomNav />
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <PortionModal />
 
       <View style={[styles.topNav, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={handleLogout}>
-          <Ionicons name="menu" size={26} color={colors.text} />
+        <TouchableOpacity onPress={handleLogout} accessibilityLabel="Log out">
+          <Ionicons name="log-out-outline" size={24} color={colors.textMuted} />
         </TouchableOpacity>
         <Text style={[styles.navTitle, { color: colors.text }]}>Alviva </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: colors.primaryLight }]}>
             <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('goalSetup')}>
+          <TouchableOpacity onPress={() => setActiveTab(2)}>
             <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
               <Ionicons name="person" size={18} color={colors.primary} />
             </View>
