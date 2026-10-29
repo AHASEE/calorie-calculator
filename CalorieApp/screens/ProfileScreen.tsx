@@ -9,6 +9,8 @@ import { API_URL } from '../constants/api';
 interface Props {
   token: string;
   onSave?: (suggestedGoal: number) => void;
+  onEditGoal?: () => void;
+  onLogout?: () => void;
 }
 
 interface ProfileData {
@@ -32,7 +34,7 @@ const ACTIVITY_LEVELS = [
   { key: 'active',    label: 'Active',    desc: '6-7 days/week' },
 ];
 
-export default function ProfileScreen({ token, onSave }: Props) {
+export default function ProfileScreen({ token, onSave, onEditGoal, onLogout }: Props) {
   const { colors } = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -247,8 +249,42 @@ export default function ProfileScreen({ token, onSave }: Props) {
         onPress={handleSave}
         disabled={saving}
       >
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnTxt}>Save Profile ✅</Text>}
+        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnTxt}>Save Profile</Text>}
       </TouchableOpacity>
+
+      <View style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.accountTitle, { color: colors.text }]}>Account & goals</Text>
+
+        <TouchableOpacity
+          style={[styles.accountRow, { borderBottomColor: colors.border }]}
+          onPress={onEditGoal}
+          disabled={!onEditGoal}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>Daily calorie goal</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              {profile?.daily_goal || 2000} kcal per day
+            </Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.primary }]}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.accountRow}
+          onPress={onLogout}
+          disabled={!onLogout}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.error }]}>Log out</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>Sign out of Alviva on this device</Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.error }]}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.healthNote, { color: colors.textMuted }]}>
+        BMI and calorie goals are estimates and are not medical advice.
+      </Text>
 
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -277,6 +313,13 @@ const styles = StyleSheet.create({
   bmiBadge:   { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   bmiBadgeTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
   bmiTip:     { fontSize: 13, marginTop: 12 },
-  saveBtn:    { borderRadius: 14, paddingVertical: 16, alignItems: 'center', elevation: 4 },
+  saveBtn:    { borderRadius: 14, paddingVertical: 16, alignItems: 'center', elevation: 4, marginBottom: 18 },
   saveBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  accountCard: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 16, marginBottom: 14 },
+  accountTitle: { fontSize: 14, fontWeight: '900', paddingTop: 16, paddingBottom: 8 },
+  accountRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth },
+  accountRowTitle: { fontSize: 14, fontWeight: '800' },
+  accountRowSub: { fontSize: 11, marginTop: 3 },
+  accountArrow: { fontSize: 26, fontWeight: '500' },
+  healthNote: { fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
 });
