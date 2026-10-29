@@ -338,7 +338,7 @@ function AppInner() {
   if (screen === 'signup') return <SignupScreen onSignup={() => setScreen('login')} onGoToLogin={() => setScreen('login')} />;
   if (screen === 'goalSetup') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
         <GoalSetupScreen
           token={token!}
           currentGoal={stats?.dailyGoal || 2000}
@@ -353,7 +353,7 @@ function AppInner() {
   // ✅ ARTICLE DETAIL SCREEN CHECK - SHOW WHEN ARTICLE SELECTED
   if (selectedArticle) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <ArticleDetailScreen 
           url={selectedArticle.url}
@@ -514,7 +514,7 @@ function AppInner() {
   );
 
   if (activeTab === 2) return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <HistoryScreen token={token!} dailyGoal={dailyGoal} />
       <BottomNav />
@@ -522,7 +522,7 @@ function AppInner() {
   );
 
   if (activeTab === 3) return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ArticlesScreen />
       <BottomNav />
@@ -530,7 +530,7 @@ function AppInner() {
   );
 
   if (activeTab === 4) return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ProfileScreen
         token={token!}
@@ -810,7 +810,7 @@ function AppInner() {
         {/* TODAY'S SCANS */}
         <View style={styles.rowBetween}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Scans</Text>
-          <TouchableOpacity onPress={() => setActiveTab(4)}>
+          <TouchableOpacity onPress={() => setActiveTab(2)}>
             <Text style={[styles.viewAll, { color: colors.primary }]}>View All →</Text>
           </TouchableOpacity>
         </View>
