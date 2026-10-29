@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
     color: COLORS.primary, textAlign: 'center', marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16, color: '#888',
+    fontSize: 16, color: COLORS.textMuted,
     textAlign: 'center', marginBottom: 32, fontWeight: '600',
   },
   input: {
-    backgroundColor: 'white', borderRadius: 14,
+    backgroundColor: COLORS.card, borderRadius: 14,
     padding: 16, fontSize: 15, marginBottom: 16,
-    borderWidth: 1, borderColor: '#f0f0f0',
-    color: '#111',
+    borderWidth: 1, borderColor: COLORS.border,
+    color: COLORS.text,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
@@ -129,6 +129,6 @@ const styles = StyleSheet.create({
   },
   btnText: { color: 'white', fontSize: 16, fontWeight: '800' },
   link: { marginTop: 20, alignItems: 'center' },
-  linkText: { fontSize: 14, color: '#888' },
+  linkText: { fontSize: 14, color: COLORS.textMuted },
   linkBold: { color: COLORS.primary, fontWeight: '800' },
 });
