@@ -37,6 +37,8 @@ export default function LoginScreen({
     useState(false);
   const [googleLoading, setGoogleLoading] =
     useState(false);
+  const [forgotLoading, setForgotLoading] =
+    useState(false);
   const [errors, setErrors] = useState({
     email: '',
     password: '',
@@ -327,8 +329,47 @@ export default function LoginScreen({
       }
     };
 
+  const handleForgotPassword = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      Alert.alert(
+        'Enter your email',
+        'Enter the email address for your Alviva account first.'
+      );
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        cleanEmail,
+        {
+          redirectTo: GOOGLE_REDIRECT_URI,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert(
+        'Check your email',
+        'If an account exists for this email, you will receive a password reset link. Open it on this phone.'
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Unable to send reset email',
+        error?.message || 'Please try again.'
+      );
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const isBusy =
-    loading || googleLoading;
+    loading || googleLoading || forgotLoading;
 
   return (
     <SafeAreaView
@@ -554,6 +595,23 @@ export default function LoginScreen({
                   }
                 </Text>
               ) : null}
+
+              <Pressable
+                onPress={handleForgotPassword}
+                disabled={isBusy}
+                style={styles.forgotButton}
+              >
+                {forgotLoading ? (
+                  <ActivityIndicator
+                    color={COLORS.primary}
+                    size="small"
+                  />
+                ) : (
+                  <Text style={styles.forgotText}>
+                    Forgot password?
+                  </Text>
+                )}
+              </Pressable>
             </View>
 
             <Pressable
@@ -783,6 +841,18 @@ const styles =
       color: '#f44336',
       fontWeight: '600',
       marginTop: 6,
+    },
+
+    forgotButton: {
+      alignSelf: 'flex-end',
+      paddingVertical: 8,
+      paddingLeft: 12,
+    },
+
+    forgotText: {
+      color: COLORS.primary,
+      fontSize: 13,
+      fontWeight: '800',
     },
 
     btn: {
