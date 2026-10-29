@@ -723,7 +723,7 @@ function AppInner() {
           <TouchableOpacity onPress={toggleTheme} style={[styles.themeToggle, { backgroundColor: colors.primaryLight }]}>
             <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveTab(2)}>
+          <TouchableOpacity onPress={() => setActiveTab(4)}>
             <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
               <Ionicons name="person" size={18} color={colors.primary} />
             </View>
