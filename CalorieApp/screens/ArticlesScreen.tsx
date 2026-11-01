@@ -267,6 +267,9 @@ export default function ArticlesScreen() {
   const [videos, setVideos] =
     useState<Video[]>([]);
 
+  const [usingArticleFallback, setUsingArticleFallback] =
+    useState(false);
+
   const [loadingArticles, setLoadingArticles] =
     useState(false);
 
@@ -304,12 +307,15 @@ export default function ArticlesScreen() {
         data.data.length > 0
       ) {
         setArticles(data.data);
+        setUsingArticleFallback(Boolean(data.fallback));
       } else {
         setArticles(FALLBACK_ARTICLES);
+        setUsingArticleFallback(true);
       }
     } catch (err) {
       console.log('Articles fetch error:', err);
       setArticles(FALLBACK_ARTICLES);
+      setUsingArticleFallback(true);
     } finally {
       setLoadingArticles(false);
     }
@@ -527,11 +533,13 @@ export default function ArticlesScreen() {
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.sectionTitle}>
-                  Latest for you
+                  {usingArticleFallback ? 'Health guides' : 'Latest for you'}
                 </Text>
 
                 <Text style={styles.sectionSubtitle}>
-                  Curated health & wellness insights
+                  {usingArticleFallback
+                    ? 'Curated evergreen reads while live news is unavailable'
+                    : 'Recent health & wellness stories from the last 21 days'}
                 </Text>
               </View>
             </View>
