@@ -65,6 +65,14 @@ interface StreakData {
   isActiveToday: boolean;
 }
 
+interface ScanQuota {
+  plan: 'free' | 'premium';
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsDaily: boolean;
+}
+
 type ScanStage = 'idle' | 'identifying' | 'confirming' | 'fetching' | 'saving' | 'done';
 
 const PORTION_SIZES = [
@@ -128,6 +136,13 @@ function AppInner() {
   const [stats, setStats] = useState<DailyStats | null>(null);
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [scanQuota, setScanQuota] = useState<ScanQuota>({
+    plan: 'free',
+    limit: 5,
+    used: 0,
+    remaining: 5,
+    resetsDaily: true,
+  });
   const [streak, setStreak] = useState<StreakData>({ current: 0, longest: 0, isActiveToday: false });
   const passwordRecoveryRef = useRef(false);
 
@@ -296,7 +311,14 @@ function AppInner() {
       const statsData = await statsRes.json();
       const scansData = await scansRes.json();
       if (statsData.success) setStats(statsData.stats);
-      if (scansData.scans) setRecentScans(scansData.scans.slice(0, 5));
+
+      if (scansData.scans) {
+        setRecentScans(scansData.scans.slice(0, 5));
+      }
+
+      if (scansData.quota) {
+        setScanQuota(scansData.quota);
+      }
     } catch (e) { console.log('Stats fetch error:', e); }
     finally { setLoadingStats(false); }
   }, [token]);
@@ -431,6 +453,15 @@ function AppInner() {
 
   const identifyFood = async () => {
     if (!imageBase64) return;
+
+    if (scanQuota.remaining <= 0) {
+      Alert.alert(
+        'Daily scan limit reached',
+        'You have used all 5 free scans for today. Your free scans reset tomorrow.'
+      );
+      return;
+    }
+
     setScanStage('identifying');
     try {
       const res = await fetch(`${API_URL}/api/ai/identify`, {
@@ -438,11 +469,27 @@ function AppInner() {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
         },
         body: JSON.stringify({ imageBase64 }),
       });
       const data = await res.json();
-      if (!data.success) { Alert.alert('Error', data.error || 'Could not identify food'); setScanStage('idle'); return; }
+
+      if (data.quota) {
+        setScanQuota(data.quota);
+      }
+
+      if (!data.success) {
+        Alert.alert(
+          data.code === 'DAILY_SCAN_LIMIT_REACHED'
+            ? 'Daily scan limit reached'
+            : 'Error',
+          data.error || 'Could not identify food'
+        );
+        setScanStage('idle');
+        return;
+      }
+
       setIdentifiedFood(data.foodName);
       setEditedFood(data.foodName);
       setScanStage('confirming');
@@ -529,6 +576,10 @@ function AppInner() {
 
       const data = await res.json();
 
+      if (data.quota) {
+        setScanQuota(data.quota);
+      }
+
       if (!res.ok || !data.success) {
         Alert.alert(
           'Meal not saved',
@@ -569,6 +620,13 @@ function AppInner() {
     setCurrentUser(null);
     setStats(null);
     setRecentScans([]);
+    setScanQuota({
+      plan: 'free',
+      limit: 5,
+      used: 0,
+      remaining: 5,
+      resetsDaily: true,
+    });
     setStreak({ current: 0, longest: 0, isActiveToday: false });
     setActiveTab(0);
     setSelectedLearnContent(null);
@@ -596,6 +654,13 @@ function AppInner() {
             setSelectedLearnContent(null);
             setStats(null);
             setRecentScans([]);
+            setScanQuota({
+              plan: 'free',
+              limit: 5,
+              used: 0,
+              remaining: 5,
+              resetsDaily: true,
+            });
             resetScan();
           },
         },
@@ -708,10 +773,25 @@ function AppInner() {
     if (scanStage === 'idle') return (
       <>
         <Text style={[styles.scanTitle, { color: colors.text }]}>Find calories in your food</Text>
-        <Text style={[styles.scanSubtitle, { color: colors.textMuted }]}>Take a photo — AI identifies, you confirm!</Text>
-        <TouchableOpacity style={[styles.scanBtn, { backgroundColor: colors.accent }, !image && styles.scanBtnDisabled]} onPress={identifyFood} disabled={!image} activeOpacity={0.85}>
+        <Text style={[styles.scanSubtitle, { color: colors.textMuted }]}>
+          {scanQuota.remaining > 0
+            ? `${scanQuota.remaining} of ${scanQuota.limit} free scans left today`
+            : 'Daily free scan limit reached. Resets tomorrow.'}
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.scanBtn,
+            { backgroundColor: colors.accent },
+            (!image || scanQuota.remaining <= 0) && styles.scanBtnDisabled,
+          ]}
+          onPress={identifyFood}
+          disabled={!image || scanQuota.remaining <= 0}
+          activeOpacity={0.85}
+        >
           <Ionicons name="camera" size={15} color="white" style={{ marginRight: 5 }} />
-          <Text style={styles.scanBtnText}>Scan Food</Text>
+          <Text style={styles.scanBtnText}>
+            {scanQuota.remaining > 0 ? 'Scan Food' : '5/5 Used Today'}
+          </Text>
         </TouchableOpacity>
       </>
     );
@@ -799,6 +879,11 @@ function AppInner() {
           <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 19, marginTop: 5 }}>
             Take a clear photo of your food. Alviva identifies it, then you confirm the portion before saving.
           </Text>
+          <View style={styles.freePlanBadge}>
+            <Text style={styles.freePlanBadgeText}>
+              Free plan • {scanQuota.used}/{scanQuota.limit} scans used today
+            </Text>
+          </View>
         </View>
 
         <View style={[styles.scanCard, { backgroundColor: colors.card, borderColor: colors.accent }]}>
@@ -878,6 +963,11 @@ function AppInner() {
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
               <TouchableOpacity style={styles.goalBadge} onPress={() => setScreen('goalSetup')}>
                 <Text style={styles.goalBadgeTxt}>🎯 Goal: {dailyGoal} kcal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.goalBadge} onPress={() => setActiveTab(1)}>
+                <Text style={styles.goalBadgeTxt}>
+                  📷 Free: {scanQuota.remaining}/{scanQuota.limit} scans left
+                </Text>
               </TouchableOpacity>
               {streak.current > 0 && (
                 <View style={styles.streakBadge}>
@@ -1010,6 +1100,19 @@ const styles = StyleSheet.create({
   heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', lineHeight: 19 },
   goalBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start' },
   goalBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  freePlanBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 18,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  freePlanBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   streakBadge: { backgroundColor: 'rgba(255,165,0,0.3)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start' },
   streakBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
   streakCard: { borderRadius: 16, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 2 },
