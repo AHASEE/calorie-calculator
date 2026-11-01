@@ -39,8 +39,12 @@ export default function SignupScreen({ onSignup, onGoToLogin }: Props) {
         Alert.alert('Error', data.error || 'Signup failed!');
         return;
       }
-      Alert.alert('Success! 🎉', 'Account created! Now login.', [
-        { text: 'OK', onPress: onGoToLogin }
+      const message = data.requiresEmailVerification
+        ? 'Account created. Check your email and verify your address before signing in.'
+        : 'Account created successfully. You can sign in now.';
+
+      Alert.alert('Account created 🎉', message, [
+        { text: 'OK', onPress: onGoToLogin },
       ]);
     } catch (e) {
       Alert.alert('Error', 'Network error — please check your internet connection!');
