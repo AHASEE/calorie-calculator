@@ -9,7 +9,7 @@ import {
   SafeAreaProvider,
   SafeAreaView,
 } from 'react-native-safe-area-context';
-import ArticleDetailScreen from './screens/ArticleDetailScreen'; // ✅ ADDED
+import ArticleDetailScreen from './screens/ArticleDetailScreen';
 import * as ImagePicker from 'expo-image-picker';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { Ionicons } from '@expo/vector-icons';
@@ -101,74 +101,6 @@ const getStreakBadge = (streak: number): string => {
   if (streak >= 7)   return '🥉';
   return '🔥';
 };
-
-const ARTICLES = [
-  { title: "10 Best Foods for Weight Loss", desc: "Discover top foods that help you lose weight naturally.", url: "https://www.healthline.com/nutrition/weight-loss-foods", img: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", source: "Healthline" },
-  { title: "How Many Calories Per Day?", desc: "Calorie needs vary by age, sex, height, weight and activity.", url: "https://www.healthline.com/nutrition/how-many-calories-per-day", img: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400", source: "Healthline" },
-  { title: "7 Benefits of HIIT Training", desc: "HIIT workouts are most efficient way to burn fat and improve fitness.", url: "https://www.healthline.com/nutrition/benefits-of-hiit", img: "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=400", source: "WebMD" },
-  { title: "Importance of Protein in Diet", desc: "Protein is essential for muscle building, weight loss and health.", url: "https://www.healthline.com/nutrition/10-reasons-to-eat-more-protein", img: "https://images.unsplash.com/photo-1547592180-85f173990554?w=400", source: "Medical News" },
-  { title: "Best Morning Exercises", desc: "Starting day with exercise boosts energy and improves mood.", url: "https://www.healthline.com/health/fitness-exercise/morning-exercises", img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400", source: "Fitness Mag" },
-];
-
-const VIDEOS = [
-  { id: "ml6cT4AZdqI", title: "Full Body Workout for Beginners", channel: "FitnessBlender", thumb: "https://img.youtube.com/vi/ml6cT4AZdqI/mqdefault.jpg" },
-  { id: "UItWltVZZmE", title: "Healthy Meal Plan - What I Eat", channel: "Healthy Eating", thumb: "https://img.youtube.com/vi/UItWltVZZmE/mqdefault.jpg" },
-  { id: "cbKkB3POqaY", title: "10 Min Morning Yoga for Energy", channel: "Yoga With Adriene", thumb: "https://img.youtube.com/vi/cbKkB3POqaY/mqdefault.jpg" },
-  { id: "v7AYKMP6rOE", title: "High Protein Meal Prep", channel: "Nutrition Made Simple", thumb: "https://img.youtube.com/vi/v7AYKMP6rOE/mqdefault.jpg" },
-];
-
-// ── HEALTH HUB ────────────────────────────────────────────
-function HealthHub({ onSelectArticle }: { onSelectArticle: (a: any) => void }) { // ✅ UPDATED
-  const { colors } = useTheme();
-  const [tab, setTab] = React.useState<'articles' | 'videos'>('articles');
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-        <Text style={{ fontSize: 24, fontWeight: '900', color: colors.text }}>Health Hub 💪</Text>
-        <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: '600', marginTop: 2 }}>Articles & workout videos</Text>
-      </View>
-      <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 20, marginBottom: 16 }}>
-        {['articles', 'videos'].map(t => (
-          <TouchableOpacity key={t} onPress={() => setTab(t as any)} activeOpacity={0.8}
-            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12, backgroundColor: tab === t ? colors.primary : colors.primaryLight, borderWidth: 1, borderColor: colors.primary }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: tab === t ? 'white' : colors.primary }}>
-              {t === 'articles' ? '📰 Articles' : '🎥 Videos'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-        {tab === 'articles' && ARTICLES.map((a, i) => (
-          <TouchableOpacity key={i} onPress={() => onSelectArticle(a)} activeOpacity={0.85} // ✅ CHANGED
-            style={{ backgroundColor: colors.card, borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 3 }}>
-            <Image source={{ uri: a.img }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
-            <View style={{ padding: 14 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginBottom: 4 }}>{a.source}</Text>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text, lineHeight: 22, marginBottom: 6 }} numberOfLines={2}>{a.title}</Text>
-              <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 19, marginBottom: 8 }} numberOfLines={2}>{a.desc}</Text>
-              <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '700' }}>Read more →</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-        {tab === 'videos' && VIDEOS.map((v, i) => (
-          <TouchableOpacity key={i} onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${v.id}`)} activeOpacity={0.85}
-            style={{ backgroundColor: colors.card, borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 3 }}>
-            <View style={{ position: 'relative' }}>
-              <Image source={{ uri: v.thumb }} style={{ width: '100%', height: 180 }} resizeMode="cover" />
-              <View style={{ position: 'absolute', top: '40%', left: '45%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: 'white', fontSize: 18 }}>▶</Text>
-              </View>
-            </View>
-            <View style={{ padding: 14 }}>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text, lineHeight: 20, marginBottom: 6 }} numberOfLines={2}>{v.title}</Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>🎬 {v.channel}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
 
 // ── MAIN APP INNER ────────────────────────────────────────
 function AppInner() {
