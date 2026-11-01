@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Linking,
   ActivityIndicator,
   RefreshControl,
   Dimensions,
@@ -48,6 +47,11 @@ interface Video {
   thumb: string;
   url: string;
   category: string;
+}
+
+interface Props {
+  onOpenArticle: (article: NewsArticle) => void;
+  onOpenVideo: (video: Video) => void;
 }
 
 const COLORS = {
@@ -255,7 +259,10 @@ const timeAgo = (dateStr: string) => {
   return `${days}d ago`;
 };
 
-export default function ArticlesScreen() {
+export default function ArticlesScreen({
+  onOpenArticle,
+  onOpenVideo,
+}: Props) {
   const [activeTab, setActiveTab] =
     useState<Category>('For You');
 
@@ -591,7 +598,7 @@ export default function ArticlesScreen() {
                     key={item.id}
                     style={styles.articleCard}
                     onPress={() =>
-                      Linking.openURL(item.url)
+                      onOpenArticle(item)
                     }
                     activeOpacity={0.9}
                   >
@@ -745,7 +752,7 @@ export default function ArticlesScreen() {
                     key={video.id}
                     style={styles.videoCard}
                     onPress={() =>
-                      Linking.openURL(video.url)
+                      onOpenVideo(video)
                     }
                     activeOpacity={0.9}
                   >
