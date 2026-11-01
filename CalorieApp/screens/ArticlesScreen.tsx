@@ -85,6 +85,89 @@ const CATEGORIES: Category[] = [
   'Mental Health',
 ];
 
+const FALLBACK_ARTICLES: NewsArticle[] = [
+  {
+    id: 'fallback_calories',
+    title: 'How Many Calories Should You Eat Per Day?',
+    description: 'A practical overview of daily calorie needs and the factors that can change them.',
+    url: 'https://www.healthline.com/nutrition/how-many-calories-per-day',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=900',
+    source: 'Healthline',
+    publishedAt: '2026-01-01T00:00:00.000Z',
+    category: 'Nutrition',
+    readTime: '5 min',
+  },
+  {
+    id: 'fallback_protein',
+    title: 'Why Protein Matters for Health and Weight Management',
+    description: 'Learn why protein supports muscle, satiety and a balanced eating pattern.',
+    url: 'https://www.healthline.com/nutrition/10-reasons-to-eat-more-protein',
+    image: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=900',
+    source: 'Healthline',
+    publishedAt: '2026-01-02T00:00:00.000Z',
+    category: 'Nutrition',
+    readTime: '6 min',
+  },
+  {
+    id: 'fallback_hiit',
+    title: 'Benefits of High-Intensity Interval Training',
+    description: 'A simple guide to HIIT and how short workouts can support fitness.',
+    url: 'https://www.healthline.com/nutrition/benefits-of-hiit',
+    image: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=900',
+    source: 'Healthline',
+    publishedAt: '2026-01-03T00:00:00.000Z',
+    category: 'Fitness',
+    readTime: '5 min',
+  },
+  {
+    id: 'fallback_weight_loss',
+    title: 'Foods That Can Support Healthy Weight Loss',
+    description: 'Whole-food ideas that can fit into a balanced, sustainable weight-loss plan.',
+    url: 'https://www.healthline.com/nutrition/weight-loss-foods',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=900',
+    source: 'Healthline',
+    publishedAt: '2026-01-04T00:00:00.000Z',
+    category: 'Weight Loss',
+    readTime: '7 min',
+  },
+];
+
+const FALLBACK_VIDEOS: Video[] = [
+  {
+    id: 'ml6cT4AZdqI',
+    videoId: 'ml6cT4AZdqI',
+    title: 'Full Body Workout for Beginners',
+    channel: 'FitnessBlender',
+    duration: '20 min',
+    views: 'Beginner',
+    thumb: 'https://img.youtube.com/vi/ml6cT4AZdqI/hqdefault.jpg',
+    url: 'https://www.youtube.com/watch?v=ml6cT4AZdqI',
+    category: 'Fitness',
+  },
+  {
+    id: 'cbKkB3POqaY',
+    videoId: 'cbKkB3POqaY',
+    title: '10 Minute Morning Yoga for Energy',
+    channel: 'Yoga With Adriene',
+    duration: '10 min',
+    views: 'Wellness',
+    thumb: 'https://img.youtube.com/vi/cbKkB3POqaY/hqdefault.jpg',
+    url: 'https://www.youtube.com/watch?v=cbKkB3POqaY',
+    category: 'Wellness',
+  },
+  {
+    id: 'UItWltVZZmE',
+    videoId: 'UItWltVZZmE',
+    title: 'Healthy Meal Plan Inspiration',
+    channel: 'Healthy Eating',
+    duration: 'Video',
+    views: 'Nutrition',
+    thumb: 'https://img.youtube.com/vi/UItWltVZZmE/hqdefault.jpg',
+    url: 'https://www.youtube.com/watch?v=UItWltVZZmE',
+    category: 'Nutrition',
+  },
+];
+
 const TOPICS = [
   {
     label: 'High Protein',
@@ -214,11 +297,19 @@ export default function ArticlesScreen() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.success) {
+      if (
+        res.ok &&
+        data.success &&
+        Array.isArray(data.data) &&
+        data.data.length > 0
+      ) {
         setArticles(data.data);
+      } else {
+        setArticles(FALLBACK_ARTICLES);
       }
     } catch (err) {
       console.log('Articles fetch error:', err);
+      setArticles(FALLBACK_ARTICLES);
     } finally {
       setLoadingArticles(false);
     }
@@ -236,11 +327,19 @@ export default function ArticlesScreen() {
 
       const data = await res.json();
 
-      if (data.success) {
+      if (
+        res.ok &&
+        data.success &&
+        Array.isArray(data.data) &&
+        data.data.length > 0
+      ) {
         setVideos(data.data);
+      } else {
+        setVideos(FALLBACK_VIDEOS);
       }
     } catch (err) {
       console.log('Videos fetch error:', err);
+      setVideos(FALLBACK_VIDEOS);
     } finally {
       setLoadingVideos(false);
     }
