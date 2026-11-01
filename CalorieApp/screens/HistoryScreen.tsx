@@ -47,9 +47,25 @@ const getLocalDateKey = (value: Date | string): string => {
   return `${year}-${month}-${day}`;
 };
 
+const parseLocalDateKey = (dateKey: string): Date => {
+  const [year, month, day] =
+    dateKey.split('-').map(Number);
+
+  return new Date(
+    year,
+    Math.max((month || 1) - 1, 0),
+    day || 1
+  );
+};
+
 // Convert a date to a readable local label
-const getDateLabel = (dateStr: string): string => {
-  const date = new Date(dateStr);
+const getDateLabel = (value: Date | string): string => {
+  const date =
+    value instanceof Date
+      ? value
+      : /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? parseLocalDateKey(value)
+        : new Date(value);
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
@@ -93,7 +109,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
       const dateKey = getLocalDateKey(date);
       groups[dateKey] = {
         date: dateKey,
-        label: getDateLabel(date.toISOString()),
+        label: getDateLabel(date),
         scans: [],
         totalCalories: 0,
         totalProtein: 0,
@@ -239,7 +255,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
                 >
                   <View style={styles.dayLeft}>
                     <Text style={styles.dayLabel}>{day.label}</Text>
-                    <Text style={styles.dayDate}>{new Date(day.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</Text>
+                    <Text style={styles.dayDate}>{parseLocalDateKey(day.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</Text>
                   </View>
 
                   <View style={styles.dayRight}>
