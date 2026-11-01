@@ -181,7 +181,7 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [selectedArticle, setSelectedArticle] = useState<any>(null); // ✅ ADDED
+  const [selectedLearnContent, setSelectedLearnContent] = useState<any>(null);
 
   const [scanStage, setScanStage] = useState<ScanStage>('idle');
   const [identifiedFood, setIdentifiedFood] = useState('');
@@ -458,15 +458,20 @@ function AppInner() {
     );
   }
 
-  // ✅ ARTICLE DETAIL SCREEN CHECK - SHOW WHEN ARTICLE SELECTED
-  if (selectedArticle) {
+  if (selectedLearnContent) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <ArticleDetailScreen 
-          url={selectedArticle.url}
-          title={selectedArticle.title}
-          onGoBack={() => setSelectedArticle(null)}
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.background}
+        />
+        <ArticleDetailScreen
+          url={selectedLearnContent.url}
+          title={selectedLearnContent.title}
+          type={selectedLearnContent.type}
+          videoId={selectedLearnContent.videoId}
+          source={selectedLearnContent.source}
+          onGoBack={() => setSelectedLearnContent(null)}
         />
       </SafeAreaView>
     );
@@ -634,6 +639,7 @@ function AppInner() {
     setRecentScans([]);
     setStreak({ current: 0, longest: 0, isActiveToday: false });
     setActiveTab(0);
+    setSelectedLearnContent(null);
     resetScan();
     setScreen('login');
   };
@@ -655,6 +661,7 @@ function AppInner() {
             setToken(null);
             setCurrentUser(null);
             setScreen('login');
+            setSelectedLearnContent(null);
             setStats(null);
             setRecentScans([]);
             resetScan();
@@ -694,7 +701,22 @@ function AppInner() {
   if (activeTab === 3) return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <ArticlesScreen />
+      <ArticlesScreen
+        onOpenArticle={(article) =>
+          setSelectedLearnContent({
+            ...article,
+            type: 'article',
+            source: article.source,
+          })
+        }
+        onOpenVideo={(video) =>
+          setSelectedLearnContent({
+            ...video,
+            type: 'video',
+            source: video.channel,
+          })
+        }
+      />
       <BottomNav />
     </SafeAreaView>
   );
