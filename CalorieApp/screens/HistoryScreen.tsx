@@ -130,7 +130,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
   };
 
   const handleDelete = (scanId: string, dayDate: string) => {
-    Alert.alert('Delete Scan', 'Yeh scan delete karna chahte hain?', [
+    Alert.alert('Delete Scan', 'Are you sure you want to delete this scan?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
@@ -153,7 +153,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
               };
             }));
           } catch (e) {
-            Alert.alert('Error', 'Delete nahi hua — dobara try karein');
+            Alert.alert('Error', 'Could not delete the scan. Please try again.');
           }
         },
       },
@@ -171,7 +171,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
     return (
       <View style={styles.loadingWrap}>
         <ActivityIndicator color={COLORS.primary} size="large" />
-        <Text style={styles.loadingTxt}>History load ho rahi hai...</Text>
+        <Text style={styles.loadingTxt}>Loading your progress...</Text>
       </View>
     );
   }
@@ -274,7 +274,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
                 {isExpanded && (
                   <View style={styles.scansWrap}>
                     {day.scans.length === 0 ? (
-                      <Text style={styles.noScans}>Is din koi scan nahi tha 🍽️</Text>
+                      <Text style={styles.noScans}>No meals were scanned on this day 🍽️</Text>
                     ) : (
                       day.scans.map(scan => (
                         <View key={scan.id} style={styles.scanItem}>
