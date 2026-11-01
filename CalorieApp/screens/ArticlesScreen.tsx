@@ -50,6 +50,7 @@ interface Video {
 }
 
 interface Props {
+  token: string;
   onOpenArticle: (article: NewsArticle) => void;
   onOpenVideo: (video: Video) => void;
 }
@@ -260,6 +261,7 @@ const timeAgo = (dateStr: string) => {
 };
 
 export default function ArticlesScreen({
+  token,
   onOpenArticle,
   onOpenVideo,
 }: Props) {
@@ -288,6 +290,56 @@ export default function ArticlesScreen({
 
   const [contentTab, setContentTab] =
     useState<'articles' | 'videos'>('articles');
+
+  const fetchForYou = async () => {
+    setLoadingArticles(true);
+    setLoadingVideos(true);
+
+    try {
+      const res = await fetch(
+        `${API_URL}/api/articles/for-you`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const personalizedArticles =
+          Array.isArray(data.articles) &&
+          data.articles.length > 0
+            ? data.articles
+            : FALLBACK_ARTICLES;
+
+        const personalizedVideos =
+          Array.isArray(data.videos) &&
+          data.videos.length > 0
+            ? data.videos
+            : FALLBACK_VIDEOS;
+
+        setArticles(personalizedArticles);
+        setVideos(personalizedVideos);
+        setUsingArticleFallback(
+          personalizedArticles === FALLBACK_ARTICLES
+        );
+      } else {
+        setArticles(FALLBACK_ARTICLES);
+        setVideos(FALLBACK_VIDEOS);
+        setUsingArticleFallback(true);
+      }
+    } catch (err) {
+      console.log('For You fetch error:', err);
+      setArticles(FALLBACK_ARTICLES);
+      setVideos(FALLBACK_VIDEOS);
+      setUsingArticleFallback(true);
+    } finally {
+      setLoadingArticles(false);
+      setLoadingVideos(false);
+    }
+  };
 
   const fetchArticles = async (
     category: string,
@@ -359,17 +411,26 @@ export default function ArticlesScreen({
   };
 
   useEffect(() => {
+    if (activeTab === 'For You') {
+      fetchForYou();
+      return;
+    }
+
     fetchArticles(activeTab);
     fetchVideos(activeTab);
-  }, [activeTab]);
+  }, [activeTab, token]);
 
   const onRefresh = async () => {
     setRefreshing(true);
 
-    await Promise.all([
-      fetchArticles(activeTab, search),
-      fetchVideos(activeTab),
-    ]);
+    if (activeTab === 'For You' && !search.trim()) {
+      await fetchForYou();
+    } else {
+      await Promise.all([
+        fetchArticles(activeTab, search),
+        fetchVideos(activeTab),
+      ]);
+    }
 
     setRefreshing(false);
   };
