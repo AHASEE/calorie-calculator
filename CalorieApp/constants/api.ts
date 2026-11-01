@@ -1,7 +1,12 @@
+const DEFAULT_API_URL =
+  'https://calorie-calculator-4ls7.onrender.com';
 
+export const API_URL =
+  (
+    process.env.EXPO_PUBLIC_API_URL ||
+    DEFAULT_API_URL
+  ).replace(/\/$/, '');
 
-export const API_URL = 
-  process.env.EXPO_PUBLIC_API_URL || 
-  'http://localhost:3000'; // local dev ke liye fallback
-
-console.log('🌐 API URL:', API_URL); // Debug ke liye
+if (__DEV__) {
+  console.log('🌐 API URL:', API_URL);
+}
