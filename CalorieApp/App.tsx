@@ -65,7 +65,7 @@ interface StreakData {
   isActiveToday: boolean;
 }
 
-type ScanStage = 'idle' | 'identifying' | 'confirming' | 'fetching' | 'done';
+type ScanStage = 'idle' | 'identifying' | 'confirming' | 'fetching' | 'saving' | 'done';
 
 const PORTION_SIZES = [
   { label: 'Small',  multiplier: 0.6,  desc: '~60% serving' },
@@ -533,40 +533,90 @@ function AppInner() {
 
   const applyPortion = async () => {
     if (!usdaResult) return;
+
     const portion = PORTION_SIZES.find(p => p.label === selectedPortion);
     let multiplier = portion?.multiplier ?? 1.0;
+
     if (selectedPortion === 'Custom') {
       const grams = parseFloat(customGrams);
-      if (!grams || grams < 10 || grams > 2000) { Alert.alert('Error', 'Grams must be between 10 and 2000!'); return; }
+
+      if (!grams || grams < 10 || grams > 2000) {
+        Alert.alert('Invalid portion', 'Grams must be between 10 and 2000.');
+        return;
+      }
+
       multiplier = grams / 100;
     }
+
     const final: ScanResult = {
       ...usdaResult,
-      foodName:      editedFood || usdaResult.foodName,
+      foodName: editedFood.trim() || usdaResult.foodName,
       totalCalories: Math.round(usdaResult.totalCalories * multiplier),
-      protein:       Math.round(usdaResult.protein * multiplier),
-      carbs:         Math.round(usdaResult.carbs * multiplier),
-      fat:           Math.round(usdaResult.fat * multiplier),
-      fiber:         Math.round(usdaResult.fiber * multiplier),
-      servingSize:   selectedPortion === 'Custom' ? `${customGrams}g` : `${selectedPortion} (${usdaResult.servingSize})`,
+      protein: Math.round(usdaResult.protein * multiplier),
+      carbs: Math.round(usdaResult.carbs * multiplier),
+      fat: Math.round(usdaResult.fat * multiplier),
+      fiber: Math.round(usdaResult.fiber * multiplier),
+      servingSize:
+        selectedPortion === 'Custom'
+          ? `${customGrams}g`
+          : `${selectedPortion} (${usdaResult.servingSize})`,
     };
+
+    if (!token) {
+      Alert.alert('Session expired', 'Please sign in again before saving this meal.');
+      return;
+    }
+
     setShowPortionModal(false);
-    setScanResult(final);
-    setScanStage('done');
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/scans`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Timezone': timezone,
-          },
-          body: JSON.stringify({ food_name: final.foodName, calories: final.totalCalories, protein: final.protein, carbs: final.carbs, fat: final.fat, fiber: final.fiber, serving_size: final.servingSize }),
-        });
-        await fetchStats();
-        await updateStreak();
-      } catch (e) { console.log('Save error:', e); }
+    setScanResult(null);
+    setScanStage('saving');
+
+    try {
+      const res = await fetch(`${API_URL}/api/scans`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
+        },
+        body: JSON.stringify({
+          food_name: final.foodName,
+          calories: final.totalCalories,
+          protein: final.protein,
+          carbs: final.carbs,
+          fat: final.fat,
+          fiber: final.fiber,
+          serving_size: final.servingSize,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        Alert.alert(
+          'Meal not saved',
+          data.error || 'We could not save this meal. Please try again.'
+        );
+        setScanStage('confirming');
+        setShowPortionModal(true);
+        return;
+      }
+
+      setScanResult(final);
+      setScanStage('done');
+
+      await Promise.all([
+        fetchStats(),
+        updateStreak(),
+      ]);
+    } catch (e) {
+      console.log('Save error:', e);
+      Alert.alert(
+        'Meal not saved',
+        'Please check your connection and try again.'
+      );
+      setScanStage('confirming');
+      setShowPortionModal(true);
     }
   };
 
@@ -738,6 +788,16 @@ function AppInner() {
         <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '700' }}>📊 Fetching nutrition data...</Text>
         <View style={[styles.shimmer, { backgroundColor: colors.shimmer }]} />
         <View style={[styles.shimmer, { width: '50%', backgroundColor: colors.shimmer }]} />
+      </View>
+    );
+
+    if (scanStage === 'saving') return (
+      <View style={{ gap: 8 }}>
+        <ActivityIndicator color={colors.accent} size="small" />
+        <Text style={{ fontSize: 12, color: colors.text, fontWeight: '700' }}>Saving your meal...</Text>
+        <Text style={{ fontSize: 11, color: colors.textMuted, lineHeight: 16 }}>
+          Your progress will update after the meal is saved.
+        </Text>
       </View>
     );
     if (scanStage === 'done' && scanResult) return (
