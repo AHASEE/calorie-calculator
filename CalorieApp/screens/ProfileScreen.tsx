@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../components/ThemeContext';
 import { API_URL } from '../constants/api';
 import { supabase } from '../lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
 
 interface Props {
   token: string;
@@ -76,6 +77,14 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
   };
 
   const liveBMIInfo = getBMICategory(liveBMI);
+
+  const openLegalPage = async (path: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(`https://alviva.app${path}`);
+    } catch (error) {
+      Alert.alert('Unable to open page', 'Please try again.');
+    }
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -398,6 +407,49 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
             <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>Permanently delete your Alviva data</Text>
           </View>
           <Text style={[styles.accountArrow, { color: colors.error }]}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.accountTitle, { color: colors.text }]}>Legal & privacy</Text>
+
+        <TouchableOpacity
+          style={[styles.accountRow, { borderBottomColor: colors.border }]}
+          onPress={() => openLegalPage('/privacy')}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>Privacy Policy</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              How Alviva handles your data
+            </Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.primary }]}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.accountRow, { borderBottomColor: colors.border }]}
+          onPress={() => openLegalPage('/terms')}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>Terms of Service</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Rules and conditions for using Alviva
+            </Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.primary }]}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.accountRow}
+          onPress={() => openLegalPage('/delete-account')}
+        >
+          <View>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>Account deletion help</Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Web deletion request and data details
+            </Text>
+          </View>
+          <Text style={[styles.accountArrow, { color: colors.primary }]}>›</Text>
         </TouchableOpacity>
       </View>
 
