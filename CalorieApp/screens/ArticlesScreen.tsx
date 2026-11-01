@@ -42,8 +42,8 @@ interface Video {
   videoId: string;
   title: string;
   channel: string;
-  duration: string;
-  views: string;
+  duration?: string;
+  views?: string;
   thumb: string;
   url: string;
   category: string;
@@ -770,13 +770,15 @@ export default function ArticlesScreen({
                         </Text>
                       </View>
 
-                      <View style={styles.durationBadge}>
-                        <Text
-                          style={styles.durationText}
-                        >
-                          {video.duration}
-                        </Text>
-                      </View>
+                      {video.duration ? (
+                        <View style={styles.durationBadge}>
+                          <Text
+                            style={styles.durationText}
+                          >
+                            {video.duration}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={styles.videoBody}>
@@ -794,9 +796,11 @@ export default function ArticlesScreen({
                         {video.channel}
                       </Text>
 
-                      <Text style={styles.videoViews}>
-                        {video.views} views
-                      </Text>
+                      {video.views ? (
+                        <Text style={styles.videoViews}>
+                          {video.views}
+                        </Text>
+                      ) : null}
                     </View>
                   </TouchableOpacity>
                 ))}
