@@ -634,6 +634,7 @@ function AppInner() {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ArticlesScreen
+        token={token!}
         onOpenArticle={(article) =>
           setSelectedLearnContent({
             ...article,
