@@ -30,10 +30,12 @@ jobs:
           cache: npm
           cache-dependency-path: CalorieApp/package-lock.json
 
-      - name: Refresh lockfile for declared dependencies
-        run: npm install --package-lock-only
+      - name: Clean reinstall dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
 
-      - name: Commit refreshed lockfile if needed
+      - name: Commit clean lockfile if needed
         working-directory: .
         run: |
           if git diff --quiet -- CalorieApp/package-lock.json; then
@@ -42,12 +44,9 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add CalorieApp/package-lock.json
-            git commit -m "Refresh Expo SDK 57 lockfile"
+            git commit -m "Regenerate Expo dependency lockfile"
             git push
           fi
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Expo Doctor
         run: npx --yes expo-doctor
