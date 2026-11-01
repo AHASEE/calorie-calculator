@@ -34,7 +34,20 @@ interface Props {
   dailyGoal: number;
 }
 
-// Date ko readable label mein convert karo
+const getLocalDateKey = (value: Date | string): string => {
+  const date =
+    typeof value === 'string'
+      ? new Date(value)
+      : value;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+// Convert a date to a readable local label
 const getDateLabel = (dateStr: string): string => {
   const date = new Date(dateStr);
   const today = new Date();
@@ -77,7 +90,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = getLocalDateKey(date);
       groups[dateKey] = {
         date: dateKey,
         label: getDateLabel(date.toISOString()),
@@ -91,7 +104,7 @@ export default function HistoryScreen({ token, dailyGoal }: Props) {
 
     // Scans ko groups mein daalo
     scans.forEach(scan => {
-      const dateKey = new Date(scan.scanned_at).toISOString().split('T')[0];
+      const dateKey = getLocalDateKey(scan.scanned_at);
       if (groups[dateKey]) {
         groups[dateKey].scans.push(scan);
         groups[dateKey].totalCalories += scan.calories || 0;
