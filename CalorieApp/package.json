@@ -5,7 +5,10 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "doctor": "npx expo-doctor",
+    "typecheck": "tsc --noEmit",
+    "export:android": "expo export --platform android --output-dir dist"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",
