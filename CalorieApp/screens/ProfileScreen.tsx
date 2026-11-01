@@ -29,11 +29,18 @@ interface ProfileData {
   suggestedGoal: number;
 }
 
-const GENDERS = ['Male', 'Female', 'Other'];
+const GENDERS = [
+  { key: 'male', label: 'Male' },
+  { key: 'female', label: 'Female' },
+  { key: 'other', label: 'Other' },
+];
+
 const ACTIVITY_LEVELS = [
   { key: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
-  { key: 'moderate',  label: 'Moderate',  desc: '3-5 days/week' },
-  { key: 'active',    label: 'Active',    desc: '6-7 days/week' },
+  { key: 'light', label: 'Light', desc: '1-2 days/week' },
+  { key: 'moderate', label: 'Moderate', desc: '3-5 days/week' },
+  { key: 'active', label: 'Active', desc: '6-7 days/week' },
+  { key: 'very_active', label: 'Very Active', desc: 'Hard exercise or physical job' },
 ];
 
 export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onAccountDeleted }: Props) {
@@ -102,9 +109,9 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
     const weightNum = parseFloat(weight);
     const heightNum = parseFloat(height);
 
-    if (age && (ageNum < 10 || ageNum > 100)) { Alert.alert('Error', 'Age must be between 10 and 100!'); return; }
-    if (weight && (weightNum < 20 || weightNum > 300)) { Alert.alert('Error', 'Weight must be between 20 and 300 kg!'); return; }
-    if (height && (heightNum < 100 || heightNum > 250)) { Alert.alert('Error', 'Height must be between 100 and 250 cm!'); return; }
+    if (age && (ageNum < 13 || ageNum > 120)) { Alert.alert('Error', 'Age must be between 13 and 120.'); return; }
+    if (weight && (weightNum < 20 || weightNum > 500)) { Alert.alert('Error', 'Weight must be between 20 and 500 kg.'); return; }
+    if (height && (heightNum < 80 || heightNum > 250)) { Alert.alert('Error', 'Height must be between 80 and 250 cm.'); return; }
 
     setSaving(true);
     try {
@@ -256,11 +263,26 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
           <View style={styles.genderRow}>
             {GENDERS.map(g => (
               <TouchableOpacity
-                key={g}
-                style={[styles.genderChip, { borderColor: colors.border }, gender === g && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={() => setGender(g)}
+                key={g.key}
+                style={[
+                  styles.genderChip,
+                  { borderColor: colors.border },
+                  gender === g.key && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => setGender(g.key)}
               >
-                <Text style={[styles.genderTxt, { color: colors.textMuted }, gender === g && { color: '#fff' }]}>{g}</Text>
+                <Text
+                  style={[
+                    styles.genderTxt,
+                    { color: colors.textMuted },
+                    gender === g.key && { color: '#fff' },
+                  ]}
+                >
+                  {g.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
