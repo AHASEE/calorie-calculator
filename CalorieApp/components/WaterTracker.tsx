@@ -23,6 +23,11 @@ export default function WaterTracker({ token }: Props) {
   const [loading, setLoading] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  const timezone =
+    Intl.DateTimeFormat()
+      .resolvedOptions()
+      .timeZone || 'UTC';
+
   // Load saved goal on mount
   useEffect(() => {
     (async () => {
@@ -44,12 +49,15 @@ export default function WaterTracker({ token }: Props) {
   const fetchWater = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/water`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
+        },
       });
       const data = await res.json();
       if (data.success) setGlasses(data.water.totalCups);
     } catch (e) { console.log('Water fetch error:', e); }
-  }, [token]);
+  }, [token, timezone]);
 
   useEffect(() => { fetchWater(); }, [fetchWater]);
 
@@ -69,6 +77,7 @@ export default function WaterTracker({ token }: Props) {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Timezone': timezone,
         },
         body: JSON.stringify({ cups: 1 }),
       });
@@ -91,7 +100,10 @@ export default function WaterTracker({ token }: Props) {
     try {
       const res = await fetch(`${API_URL}/api/water/latest`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Timezone': timezone,
+        },
       });
       const data = await res.json();
       if (data.success) setGlasses(data.water.totalCups);
