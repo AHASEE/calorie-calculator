@@ -31,8 +31,8 @@ export default function GoalSetupScreen({ token, currentGoal, currentName, onSav
 
   const handleSave = async () => {
     const goalToSave = showCustom ? parseInt(customGoal) : selectedGoal;
-    if (!goalToSave || goalToSave < 500 || goalToSave > 10000) {
-      Alert.alert('Error', 'Please enter a valid calorie goal (500-10000)!');
+    if (!goalToSave || goalToSave < 800 || goalToSave > 10000) {
+      Alert.alert('Error', 'Please enter a valid calorie goal (800-10000).');
       return;
     }
     if (!name.trim()) {
