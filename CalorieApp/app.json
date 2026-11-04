@@ -46,6 +46,13 @@
         {
           "experimentalLauncherActivity": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#075B3A",
+          "defaultChannel": "alviva-reminders"
+        }
       ]
     ],
     "extra": {
