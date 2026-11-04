@@ -403,6 +403,10 @@ function AppInner() {
 
       if (destination === 'scan') {
         setActiveTab(1);
+      } else if (destination === 'progress') {
+        setActiveTab(2);
+      } else if (destination === 'profile') {
+        setActiveTab(4);
       } else {
         setActiveTab(0);
       }
