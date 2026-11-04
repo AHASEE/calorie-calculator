@@ -561,6 +561,114 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
           />
         </View>
 
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Workout / walk reminder
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Daily at 6:00 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.workout}
+            onValueChange={(value) =>
+              updateNotificationPreference('workout', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.workout
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Streak check
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Daily at 8:30 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.streak}
+            onValueChange={(value) =>
+              updateNotificationPreference('streak', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.streak
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Weekly weight check
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Every Sunday at 9:00 AM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.weight}
+            onValueChange={(value) =>
+              updateNotificationPreference('weight', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.weight
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Weekly progress review
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Every Sunday at 8:00 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.weeklyProgress}
+            onValueChange={(value) =>
+              updateNotificationPreference('weeklyProgress', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.weeklyProgress
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
         <TouchableOpacity
           style={styles.testNotificationBtn}
           onPress={handleTestNotification}
