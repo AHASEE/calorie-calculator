@@ -30,7 +30,7 @@ interface NewsArticle {
   title: string;
   description: string;
   url: string;
-  image: string;
+  image: string | null;
   source: string;
   publishedAt: string;
   category: string;
@@ -1319,6 +1319,10 @@ export default function ArticlesScreen({
 
         {/* ================= POPULAR TOPICS ================= */}
 
+        {!(
+          (contentTab === 'articles' && articleHasMore) ||
+          (contentTab === 'videos' && videoHasMore)
+        ) && (
         <View style={styles.topicSection}>
           <View style={styles.sectionHeader}>
             <View>
@@ -1330,6 +1334,7 @@ export default function ArticlesScreen({
                 Find content based on your goals
               </Text>
             </View>
+        )}
           </View>
 
           <ScrollView
