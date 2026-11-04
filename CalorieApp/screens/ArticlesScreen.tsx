@@ -1323,78 +1323,78 @@ export default function ArticlesScreen({
           (contentTab === 'articles' && articleHasMore) ||
           (contentTab === 'videos' && videoHasMore)
         ) && (
-        <View style={styles.topicSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>
-                Explore topics
-              </Text>
+          <View style={styles.topicSection}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>
+                  Explore topics
+                </Text>
 
-              <Text style={styles.sectionSubtitle}>
-                Find content based on your goals
-              </Text>
+                <Text style={styles.sectionSubtitle}>
+                  Find content based on your goals
+                </Text>
+              </View>
             </View>
-        )}
-          </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.topicContent}
-          >
-            {TOPICS.map((topic) => (
-              <TouchableOpacity
-                key={topic.label}
-                style={[
-                  styles.topicCard,
-                  {
-                    backgroundColor: topic.bg,
-                  },
-                ]}
-                onPress={() =>
-                  handleTopic(topic.label)
-                }
-                activeOpacity={0.85}
-              >
-                <View
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topicContent}
+            >
+              {TOPICS.map((topic) => (
+                <TouchableOpacity
+                  key={topic.label}
                   style={[
-                    styles.topicIcon,
+                    styles.topicCard,
                     {
-                      backgroundColor:
-                        COLORS.surface,
+                      backgroundColor: topic.bg,
                     },
                   ]}
+                  onPress={() =>
+                    handleTopic(topic.label)
+                  }
+                  activeOpacity={0.85}
                 >
-                  <Text style={styles.topicEmoji}>
-                    {topic.icon}
+                  <View
+                    style={[
+                      styles.topicIcon,
+                      {
+                        backgroundColor:
+                          COLORS.surface,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.topicEmoji}>
+                      {topic.icon}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.topicText,
+                      {
+                        color: topic.color,
+                      },
+                    ]}
+                  >
+                    {topic.label}
                   </Text>
-                </View>
 
-                <Text
-                  style={[
-                    styles.topicText,
-                    {
-                      color: topic.color,
-                    },
-                  ]}
-                >
-                  {topic.label}
-                </Text>
-
-                <Text
-                  style={[
-                    styles.topicArrow,
-                    {
-                      color: topic.color,
-                    },
-                  ]}
-                >
-                  →
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                  <Text
+                    style={[
+                      styles.topicArrow,
+                      {
+                        color: topic.color,
+                      },
+                    ]}
+                  >
+                    →
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={{ height: 36 }} />
       </ScrollView>
