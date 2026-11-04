@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, Modal,
+  TextInput, Alert, ActivityIndicator, Modal, Switch,
 } from 'react-native';
 import { useTheme } from '../components/ThemeContext';
 import { API_URL } from '../constants/api';
 import { supabase } from '../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getNotificationPreferences,
+  requestNotificationPermission,
+  saveNotificationPreferences,
+  sendTestNotification,
+  type NotificationPreferences,
+} from '../lib/notifications';
 
 interface Props {
   token: string;
@@ -62,6 +70,11 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [requiresDeletePassword, setRequiresDeletePassword] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] =
+    useState<NotificationPreferences>(
+      DEFAULT_NOTIFICATION_PREFERENCES
+    );
+  const [notificationBusy, setNotificationBusy] = useState(false);
 
   // Live BMI calculate karo as user types
   const liveBMI = weight && height
@@ -109,7 +122,102 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
     }
   };
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    fetchProfile();
+
+    getNotificationPreferences()
+      .then(setNotificationPrefs)
+      .catch(() => {});
+  }, []);
+
+  const updateNotificationPreference = async (
+    key: keyof NotificationPreferences,
+    value: boolean
+  ) => {
+    if (notificationBusy) {
+      return;
+    }
+
+    setNotificationBusy(true);
+
+    try {
+      if (value) {
+        const granted =
+          await requestNotificationPermission();
+
+        if (!granted) {
+          Alert.alert(
+            'Notifications are off',
+            'Enable notifications for Alviva in your phone settings to use reminders.'
+          );
+          return;
+        }
+      }
+
+      const next = {
+        ...notificationPrefs,
+        [key]: value,
+      };
+
+      const scheduled =
+        await saveNotificationPreferences(next);
+
+      if (!scheduled && value) {
+        Alert.alert(
+          'Notifications are off',
+          'Enable notifications for Alviva in your phone settings to use reminders.'
+        );
+        return;
+      }
+
+      setNotificationPrefs(next);
+    } catch (error) {
+      Alert.alert(
+        'Unable to update reminders',
+        'Please try again.'
+      );
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (notificationBusy) {
+      return;
+    }
+
+    setNotificationBusy(true);
+
+    try {
+      const granted =
+        await requestNotificationPermission();
+
+      if (!granted) {
+        Alert.alert(
+          'Notifications are off',
+          'Enable notifications for Alviva in your phone settings first.'
+        );
+        return;
+      }
+
+      const sent =
+        await sendTestNotification();
+
+      if (!sent) {
+        Alert.alert(
+          'Notifications are off',
+          'Enable notifications for Alviva in your phone settings first.'
+        );
+      }
+    } catch {
+      Alert.alert(
+        'Unable to send test notification',
+        'Please try again.'
+      );
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) { Alert.alert('Error', 'Name cannot be empty!'); return; }
@@ -370,6 +478,112 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
       </TouchableOpacity>
 
       <View style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.accountTitle, { color: colors.text }]}>Reminders</Text>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Water reminders
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Daily at 11:00 AM and 5:00 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.water}
+            onValueChange={(value) =>
+              updateNotificationPreference('water', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.water
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Meal reminders
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Daily at 9:00 AM, 2:00 PM and 8:00 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.meals}
+            onValueChange={(value) =>
+              updateNotificationPreference('meals', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.meals
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <View style={[styles.reminderRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.reminderTextWrap}>
+            <Text style={[styles.accountRowTitle, { color: colors.text }]}>
+              Evening check-in
+            </Text>
+            <Text style={[styles.accountRowSub, { color: colors.textMuted }]}>
+              Daily at 9:00 PM
+            </Text>
+          </View>
+          <Switch
+            value={notificationPrefs.evening}
+            onValueChange={(value) =>
+              updateNotificationPreference('evening', value)
+            }
+            disabled={notificationBusy}
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            thumbColor={
+              notificationPrefs.evening
+                ? colors.primary
+                : '#f4f4f5'
+            }
+          />
+        </View>
+
+        <TouchableOpacity
+          style={styles.testNotificationBtn}
+          onPress={handleTestNotification}
+          disabled={notificationBusy}
+        >
+          {notificationBusy ? (
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+            />
+          ) : (
+            <Text style={[styles.testNotificationTxt, { color: colors.primary }]}>
+              Send test notification
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <Text style={[styles.reminderNote, { color: colors.textMuted }]}>
+          Reminder times follow your phone’s local time. You can turn them off anytime.
+        </Text>
+      </View>
+
+      <View style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.accountTitle, { color: colors.text }]}>Account & goals</Text>
 
         <TouchableOpacity
@@ -557,6 +771,29 @@ const styles = StyleSheet.create({
   accountRowTitle: { fontSize: 14, fontWeight: '800' },
   accountRowSub: { fontSize: 11, marginTop: 3 },
   accountArrow: { fontSize: 26, fontWeight: '500' },
+  reminderRow: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  reminderTextWrap: { flex: 1, paddingRight: 8 },
+  testNotificationBtn: {
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    borderRadius: 12,
+  },
+  testNotificationTxt: { fontSize: 13, fontWeight: '900' },
+  reminderNote: {
+    fontSize: 11,
+    lineHeight: 16,
+    paddingBottom: 16,
+    textAlign: 'center',
+  },
   healthNote: { fontSize: 11, lineHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   deleteModal: { width: '100%', maxWidth: 440, borderRadius: 20, padding: 20 },
