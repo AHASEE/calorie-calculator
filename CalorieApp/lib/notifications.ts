@@ -10,12 +10,20 @@ export interface NotificationPreferences {
   water: boolean;
   meals: boolean;
   evening: boolean;
+  weight: boolean;
+  workout: boolean;
+  streak: boolean;
+  weeklyProgress: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   water: false,
   meals: false,
   evening: false,
+  weight: false,
+  workout: false,
+  streak: false,
+  weeklyProgress: false,
 };
 
 export async function ensureNotificationChannel() {
@@ -65,6 +73,10 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
       water: Boolean(parsed?.water),
       meals: Boolean(parsed?.meals),
       evening: Boolean(parsed?.evening),
+      weight: Boolean(parsed?.weight),
+      workout: Boolean(parsed?.workout),
+      streak: Boolean(parsed?.streak),
+      weeklyProgress: Boolean(parsed?.weeklyProgress),
     };
   } catch {
     return DEFAULT_NOTIFICATION_PREFERENCES;
@@ -116,7 +128,11 @@ async function scheduleDaily(
   minute: number,
   title: string,
   body: string,
-  destination: 'home' | 'scan'
+  destination:
+    | 'home'
+    | 'scan'
+    | 'profile'
+    | 'progress'
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
@@ -143,6 +159,44 @@ async function scheduleDaily(
   });
 }
 
+async function scheduleWeekly(
+  weekday: number,
+  hour: number,
+  minute: number,
+  title: string,
+  body: string,
+  destination:
+    | 'home'
+    | 'scan'
+    | 'profile'
+    | 'progress'
+): Promise<string> {
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      sound: 'default',
+      data: {
+        destination,
+        source: 'alviva-reminder',
+      },
+    },
+    trigger: {
+      type:
+        Notifications
+          .SchedulableTriggerInputTypes
+          .WEEKLY,
+      weekday,
+      hour,
+      minute,
+      channelId:
+        Platform.OS === 'android'
+          ? CHANNEL_ID
+          : undefined,
+    },
+  });
+}
+
 export async function syncNotificationSchedules(
   preferences: NotificationPreferences
 ): Promise<boolean> {
@@ -151,7 +205,11 @@ export async function syncNotificationSchedules(
   const enabled =
     preferences.water ||
     preferences.meals ||
-    preferences.evening;
+    preferences.evening ||
+    preferences.weight ||
+    preferences.workout ||
+    preferences.streak ||
+    preferences.weeklyProgress;
 
   if (!enabled) {
     return true;
@@ -230,6 +288,56 @@ export async function syncNotificationSchedules(
         'Daily check-in 🌙',
         'Review today’s progress and keep your Alviva routine going.',
         'home'
+      )
+    );
+  }
+
+  if (preferences.workout) {
+    ids.push(
+      await scheduleDaily(
+        18,
+        0,
+        'Time to move 🚶',
+        'A short walk or workout can help you stay consistent today.',
+        'home'
+      )
+    );
+  }
+
+  if (preferences.streak) {
+    ids.push(
+      await scheduleDaily(
+        20,
+        30,
+        'Streak check 🔥',
+        'Open Alviva and make sure today’s progress is logged.',
+        'home'
+      )
+    );
+  }
+
+  if (preferences.weight) {
+    ids.push(
+      await scheduleWeekly(
+        1,
+        9,
+        0,
+        'Weekly weight check ⚖️',
+        'If you track your weight, update it in your Alviva profile.',
+        'profile'
+      )
+    );
+  }
+
+  if (preferences.weeklyProgress) {
+    ids.push(
+      await scheduleWeekly(
+        1,
+        20,
+        0,
+        'Your week in Alviva 📊',
+        'Review your recent meals, calories and progress for the week.',
+        'progress'
       )
     );
   }
