@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -242,6 +242,51 @@ const getCat = (cat: string) =>
     bg: COLORS.primarySoft,
   };
 
+const mergeUniqueArticles = (
+  current: NewsArticle[],
+  incoming: NewsArticle[]
+) => {
+  const seen = new Set(
+    current.map((item) => item.url)
+  );
+
+  return [
+    ...current,
+    ...incoming.filter((item) => {
+      if (!item?.url || seen.has(item.url)) {
+        return false;
+      }
+
+      seen.add(item.url);
+      return true;
+    }),
+  ];
+};
+
+const mergeUniqueVideos = (
+  current: Video[],
+  incoming: Video[]
+) => {
+  const seen = new Set(
+    current.map((item) => item.videoId)
+  );
+
+  return [
+    ...current,
+    ...incoming.filter((item) => {
+      if (
+        !item?.videoId ||
+        seen.has(item.videoId)
+      ) {
+        return false;
+      }
+
+      seen.add(item.videoId);
+      return true;
+    }),
+  ];
+};
+
 const timeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
 
@@ -285,19 +330,74 @@ export default function ArticlesScreen({
   const [loadingVideos, setLoadingVideos] =
     useState(false);
 
+  const [loadingMoreArticles, setLoadingMoreArticles] =
+    useState(false);
+
+  const [loadingMoreVideos, setLoadingMoreVideos] =
+    useState(false);
+
+  const [articlePage, setArticlePage] =
+    useState(1);
+
+  const [articleHasMore, setArticleHasMore] =
+    useState(false);
+
+  const [videoNextPageToken, setVideoNextPageToken] =
+    useState<string | null>(null);
+
+  const [videoHasMore, setVideoHasMore] =
+    useState(false);
+
+  const articleLoadMoreRef = useRef(false);
+  const videoLoadMoreRef = useRef(false);
+
   const [refreshing, setRefreshing] =
     useState(false);
 
   const [contentTab, setContentTab] =
     useState<'articles' | 'videos'>('articles');
 
-  const fetchForYou = async () => {
-    setLoadingArticles(true);
-    setLoadingVideos(true);
+  const fetchForYou = async ({
+    articlePageToLoad = 1,
+    videoPageToken = '',
+    appendArticles = false,
+    appendVideos = false,
+  }: {
+    articlePageToLoad?: number;
+    videoPageToken?: string;
+    appendArticles?: boolean;
+    appendVideos?: boolean;
+  } = {}) => {
+    const content =
+      appendArticles
+        ? 'articles'
+        : appendVideos
+          ? 'videos'
+          : 'all';
+
+    if (appendArticles) {
+      articleLoadMoreRef.current = true;
+      setLoadingMoreArticles(true);
+    } else if (appendVideos) {
+      videoLoadMoreRef.current = true;
+      setLoadingMoreVideos(true);
+    } else {
+      setLoadingArticles(true);
+      setLoadingVideos(true);
+    }
 
     try {
+      let url =
+        `${API_URL}/api/articles/for-you?content=${content}` +
+        `&articlePage=${articlePageToLoad}`;
+
+      if (videoPageToken) {
+        url +=
+          `&videoPageToken=${encodeURIComponent(videoPageToken)}`;
+      }
+
       const res = await fetch(
-        `${API_URL}/api/articles/for-you`,
+        url,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -307,110 +407,292 @@ export default function ArticlesScreen({
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        const personalizedArticles =
-          Array.isArray(data.articles) &&
-          data.articles.length > 0
+      if (!res.ok || !data.success) {
+        if (!appendArticles && !appendVideos) {
+          setArticles(FALLBACK_ARTICLES);
+          setVideos(FALLBACK_VIDEOS);
+          setUsingArticleFallback(true);
+          setArticleHasMore(false);
+          setVideoHasMore(false);
+          setVideoNextPageToken(null);
+        }
+        return;
+      }
+
+      if (content !== 'videos') {
+        const incomingArticles =
+          Array.isArray(data.articles)
             ? data.articles
-            : FALLBACK_ARTICLES;
+            : [];
 
-        const personalizedVideos =
-          Array.isArray(data.videos) &&
-          data.videos.length > 0
-            ? data.videos
-            : FALLBACK_VIDEOS;
+        if (appendArticles) {
+          setArticles((current) =>
+            mergeUniqueArticles(
+              current,
+              incomingArticles
+            )
+          );
+        } else {
+          const nextArticles =
+            incomingArticles.length > 0
+              ? incomingArticles
+              : FALLBACK_ARTICLES;
 
-        setArticles(personalizedArticles);
-        setVideos(personalizedVideos);
-        setUsingArticleFallback(
-          personalizedArticles === FALLBACK_ARTICLES
+          setArticles(nextArticles);
+          setUsingArticleFallback(
+            incomingArticles.length === 0
+          );
+        }
+
+        setArticlePage(
+          Number(
+            data.pagination?.articles?.page
+          ) || articlePageToLoad
         );
-      } else {
-        setArticles(FALLBACK_ARTICLES);
-        setVideos(FALLBACK_VIDEOS);
-        setUsingArticleFallback(true);
+
+        setArticleHasMore(
+          incomingArticles.length > 0 &&
+          Boolean(
+            data.pagination?.articles?.hasMore
+          )
+        );
+      }
+
+      if (content !== 'articles') {
+        const incomingVideos =
+          Array.isArray(data.videos)
+            ? data.videos
+            : [];
+
+        if (appendVideos) {
+          setVideos((current) =>
+            mergeUniqueVideos(
+              current,
+              incomingVideos
+            )
+          );
+        } else {
+          setVideos(
+            incomingVideos.length > 0
+              ? incomingVideos
+              : FALLBACK_VIDEOS
+          );
+        }
+
+        const nextToken =
+          typeof data.pagination?.videos
+            ?.nextPageToken === 'string'
+            ? data.pagination.videos.nextPageToken
+            : null;
+
+        setVideoNextPageToken(nextToken);
+        setVideoHasMore(
+          incomingVideos.length > 0 &&
+          Boolean(
+            data.pagination?.videos?.hasMore
+          ) &&
+          Boolean(nextToken)
+        );
       }
     } catch (err) {
       console.log('For You fetch error:', err);
-      setArticles(FALLBACK_ARTICLES);
-      setVideos(FALLBACK_VIDEOS);
-      setUsingArticleFallback(true);
+
+      if (!appendArticles && !appendVideos) {
+        setArticles(FALLBACK_ARTICLES);
+        setVideos(FALLBACK_VIDEOS);
+        setUsingArticleFallback(true);
+        setArticleHasMore(false);
+        setVideoHasMore(false);
+        setVideoNextPageToken(null);
+      }
     } finally {
-      setLoadingArticles(false);
-      setLoadingVideos(false);
+      if (appendArticles) {
+        articleLoadMoreRef.current = false;
+        setLoadingMoreArticles(false);
+      } else if (appendVideos) {
+        videoLoadMoreRef.current = false;
+        setLoadingMoreVideos(false);
+      } else {
+        setLoadingArticles(false);
+        setLoadingVideos(false);
+      }
     }
   };
 
   const fetchArticles = async (
     category: string,
-    query?: string
+    query?: string,
+    pageToLoad = 1,
+    append = false
   ) => {
-    setLoadingArticles(true);
+    if (append) {
+      articleLoadMoreRef.current = true;
+      setLoadingMoreArticles(true);
+    } else {
+      setLoadingArticles(true);
+    }
 
     try {
       let url =
         `${API_URL}/api/articles/news?category=` +
-        encodeURIComponent(category);
+        encodeURIComponent(category) +
+        `&page=${pageToLoad}`;
 
       if (query) {
-        url += `&search=${encodeURIComponent(query)}`;
+        url +=
+          `&search=${encodeURIComponent(query)}`;
       }
 
       const res = await fetch(url);
       const data = await res.json();
 
-      if (
+      const incoming =
         res.ok &&
         data.success &&
-        Array.isArray(data.data) &&
-        data.data.length > 0
-      ) {
-        setArticles(data.data);
-        setUsingArticleFallback(Boolean(data.fallback));
+        Array.isArray(data.data)
+          ? data.data
+          : [];
+
+      if (append) {
+        if (incoming.length > 0) {
+          setArticles((current) =>
+            mergeUniqueArticles(
+              current,
+              incoming
+            )
+          );
+        }
+      } else if (incoming.length > 0) {
+        setArticles(incoming);
+        setUsingArticleFallback(
+          Boolean(data.fallback)
+        );
       } else {
         setArticles(FALLBACK_ARTICLES);
         setUsingArticleFallback(true);
       }
+
+      const fallback =
+        Boolean(data.fallback);
+
+      setArticlePage(
+        Number(data.pagination?.page) ||
+        pageToLoad
+      );
+
+      setArticleHasMore(
+        !fallback &&
+        incoming.length > 0 &&
+        Boolean(data.pagination?.hasMore)
+      );
     } catch (err) {
       console.log('Articles fetch error:', err);
-      setArticles(FALLBACK_ARTICLES);
-      setUsingArticleFallback(true);
+
+      if (!append) {
+        setArticles(FALLBACK_ARTICLES);
+        setUsingArticleFallback(true);
+      }
+
+      setArticleHasMore(false);
     } finally {
-      setLoadingArticles(false);
+      if (append) {
+        articleLoadMoreRef.current = false;
+        setLoadingMoreArticles(false);
+      } else {
+        setLoadingArticles(false);
+      }
     }
   };
 
-  const fetchVideos = async (category: string) => {
-    setLoadingVideos(true);
+  const fetchVideos = async (
+    category: string,
+    pageToken = '',
+    append = false
+  ) => {
+    if (append) {
+      videoLoadMoreRef.current = true;
+      setLoadingMoreVideos(true);
+    } else {
+      setLoadingVideos(true);
+    }
 
     try {
-      const res = await fetch(
+      let url =
         `${API_URL}/api/articles/videos?category=${encodeURIComponent(
           category
-        )}`
-      );
+        )}`;
 
+      if (pageToken) {
+        url +=
+          `&pageToken=${encodeURIComponent(pageToken)}`;
+      }
+
+      const res = await fetch(url);
       const data = await res.json();
 
-      if (
+      const incoming =
         res.ok &&
         data.success &&
-        Array.isArray(data.data) &&
-        data.data.length > 0
-      ) {
-        setVideos(data.data);
+        Array.isArray(data.data)
+          ? data.data
+          : [];
+
+      if (append) {
+        if (incoming.length > 0) {
+          setVideos((current) =>
+            mergeUniqueVideos(
+              current,
+              incoming
+            )
+          );
+        }
+      } else if (incoming.length > 0) {
+        setVideos(incoming);
       } else {
         setVideos(FALLBACK_VIDEOS);
       }
+
+      const nextToken =
+        typeof data.pagination?.nextPageToken ===
+        'string'
+          ? data.pagination.nextPageToken
+          : null;
+
+      setVideoNextPageToken(nextToken);
+      setVideoHasMore(
+        !data.fallback &&
+        incoming.length > 0 &&
+        Boolean(data.pagination?.hasMore) &&
+        Boolean(nextToken)
+      );
     } catch (err) {
       console.log('Videos fetch error:', err);
-      setVideos(FALLBACK_VIDEOS);
+
+      if (!append) {
+        setVideos(FALLBACK_VIDEOS);
+      }
+
+      setVideoHasMore(false);
+      setVideoNextPageToken(null);
     } finally {
-      setLoadingVideos(false);
+      if (append) {
+        videoLoadMoreRef.current = false;
+        setLoadingMoreVideos(false);
+      } else {
+        setLoadingVideos(false);
+      }
     }
   };
 
   useEffect(() => {
+    articleLoadMoreRef.current = false;
+    videoLoadMoreRef.current = false;
+
+    setArticlePage(1);
+    setArticleHasMore(false);
+    setVideoNextPageToken(null);
+    setVideoHasMore(false);
+
     if (activeTab === 'For You') {
       fetchForYou();
       return;
@@ -423,12 +705,28 @@ export default function ArticlesScreen({
   const onRefresh = async () => {
     setRefreshing(true);
 
+    articleLoadMoreRef.current = false;
+    videoLoadMoreRef.current = false;
+    setArticlePage(1);
+    setArticleHasMore(false);
+    setVideoNextPageToken(null);
+    setVideoHasMore(false);
+
     if (activeTab === 'For You' && !search.trim()) {
       await fetchForYou();
     } else {
       await Promise.all([
-        fetchArticles(activeTab, search),
-        fetchVideos(activeTab),
+        fetchArticles(
+          activeTab,
+          search.trim() || undefined,
+          1,
+          false
+        ),
+        fetchVideos(
+          activeTab,
+          '',
+          false
+        ),
       ]);
     }
 
@@ -438,7 +736,111 @@ export default function ArticlesScreen({
   const handleTopic = (topic: string) => {
     setSearch(topic);
     setContentTab('articles');
-    fetchArticles(activeTab, topic);
+    setArticlePage(1);
+    setArticleHasMore(false);
+
+    fetchArticles(
+      activeTab,
+      topic,
+      1,
+      false
+    );
+  };
+
+  const loadMoreArticles = async () => {
+    if (
+      loadingArticles ||
+      loadingMoreArticles ||
+      articleLoadMoreRef.current ||
+      !articleHasMore ||
+      usingArticleFallback
+    ) {
+      return;
+    }
+
+    const nextPage =
+      articlePage + 1;
+
+    if (
+      activeTab === 'For You' &&
+      !search.trim()
+    ) {
+      await fetchForYou({
+        articlePageToLoad: nextPage,
+        appendArticles: true,
+      });
+
+      return;
+    }
+
+    await fetchArticles(
+      activeTab,
+      search.trim() || undefined,
+      nextPage,
+      true
+    );
+  };
+
+  const loadMoreVideos = async () => {
+    if (
+      loadingVideos ||
+      loadingMoreVideos ||
+      videoLoadMoreRef.current ||
+      !videoHasMore ||
+      !videoNextPageToken
+    ) {
+      return;
+    }
+
+    if (activeTab === 'For You') {
+      await fetchForYou({
+        videoPageToken:
+          videoNextPageToken,
+        appendVideos: true,
+      });
+
+      return;
+    }
+
+    await fetchVideos(
+      activeTab,
+      videoNextPageToken,
+      true
+    );
+  };
+
+  const handleScrollNearEnd = ({
+    nativeEvent,
+  }: {
+    nativeEvent: {
+      layoutMeasurement: {
+        height: number;
+      };
+      contentOffset: {
+        y: number;
+      };
+      contentSize: {
+        height: number;
+      };
+    };
+  }) => {
+    const paddingToBottom = 320;
+
+    const nearBottom =
+      nativeEvent.layoutMeasurement.height +
+      nativeEvent.contentOffset.y >=
+      nativeEvent.contentSize.height -
+      paddingToBottom;
+
+    if (!nearBottom) {
+      return;
+    }
+
+    if (contentTab === 'articles') {
+      loadMoreArticles();
+    } else {
+      loadMoreVideos();
+    }
   };
 
   return (
@@ -478,7 +880,14 @@ export default function ArticlesScreen({
             onChangeText={setSearch}
             onSubmitEditing={() => {
               if (search.trim()) {
-                fetchArticles(activeTab, search.trim());
+                setArticlePage(1);
+                setArticleHasMore(false);
+                fetchArticles(
+                  activeTab,
+                  search.trim(),
+                  1,
+                  false
+                );
               }
             }}
             returnKeyType="search"
@@ -489,7 +898,19 @@ export default function ArticlesScreen({
               style={styles.clearButton}
               onPress={() => {
                 setSearch('');
-                fetchArticles(activeTab);
+                setArticlePage(1);
+                setArticleHasMore(false);
+
+                if (activeTab === 'For You') {
+                  fetchForYou();
+                } else {
+                  fetchArticles(
+                    activeTab,
+                    undefined,
+                    1,
+                    false
+                  );
+                }
               }}
             >
               <Text style={styles.clearText}>×</Text>
@@ -541,6 +962,8 @@ export default function ArticlesScreen({
       <ScrollView
         style={styles.body}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScrollNearEnd}
+        scrollEventThrottle={160}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -760,6 +1183,18 @@ export default function ArticlesScreen({
                 );
               })
             )}
+
+            {loadingMoreArticles && (
+              <View style={styles.loadMoreRow}>
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.primary}
+                />
+                <Text style={styles.loadMoreText}>
+                  Loading more articles...
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -865,6 +1300,18 @@ export default function ArticlesScreen({
                     </View>
                   </TouchableOpacity>
                 ))}
+
+                {loadingMoreVideos && (
+                  <View style={styles.loadMoreRow}>
+                    <ActivityIndicator
+                      size="small"
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.loadMoreText}>
+                      Loading more videos...
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -1454,6 +1901,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.secondary,
     marginTop: 10,
+  },
+
+  loadMoreRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    paddingVertical: 14,
+  },
+
+  loadMoreText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
   },
 
   /* ================= EMPTY ================= */
