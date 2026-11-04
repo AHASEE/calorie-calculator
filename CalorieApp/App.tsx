@@ -11,6 +11,7 @@ import {
 } from 'react-native-safe-area-context';
 import ArticleDetailScreen from './screens/ArticleDetailScreen';
 import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { Ionicons } from '@expo/vector-icons';
 import CircularProgress from './components/CircularProgress';
@@ -28,6 +29,10 @@ import ProfileScreen from './screens/ProfileScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import { Linking } from 'react-native';
 import { supabase } from './lib/supabase';
+import {
+  cancelAlvivaReminders,
+  restoreNotificationSchedules,
+} from './lib/notifications';
 
 // ── TYPES ─────────────────────────────────────────────────
 interface ScanResult {
@@ -74,6 +79,15 @@ interface ScanQuota {
 }
 
 type ScanStage = 'idle' | 'identifying' | 'confirming' | 'fetching' | 'saving' | 'done';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const PORTION_SIZES = [
   { label: 'Small',  multiplier: 0.6,  desc: '~60% serving' },
@@ -361,7 +375,60 @@ function AppInner() {
     if (token) {
       fetchStats();
       fetchStreak();
+
+      restoreNotificationSchedules()
+        .catch((error) => {
+          console.log(
+            'Notification restore error:',
+            error
+          );
+        });
     }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const handleNotificationResponse = (
+      response: Notifications.NotificationResponse
+    ) => {
+      const destination =
+        response.notification
+          .request
+          .content
+          .data
+          ?.destination;
+
+      if (destination === 'scan') {
+        setActiveTab(1);
+      } else {
+        setActiveTab(0);
+      }
+    };
+
+    const lastResponse =
+      Notifications.getLastNotificationResponse();
+
+    if (lastResponse?.notification) {
+      handleNotificationResponse(
+        lastResponse
+      );
+
+      Notifications
+        .clearLastNotificationResponse();
+    }
+
+    const subscription =
+      Notifications
+        .addNotificationResponseReceivedListener(
+          handleNotificationResponse
+        );
+
+    return () => {
+      subscription.remove();
+    };
   }, [token]);
 
   const onRefresh = async () => {
@@ -615,6 +682,9 @@ function AppInner() {
   };
 
   const handleAccountDeleted = () => {
+    cancelAlvivaReminders()
+      .catch(() => {});
+
     passwordRecoveryRef.current = false;
     setToken(null);
     setCurrentUser(null);
@@ -647,6 +717,9 @@ function AppInner() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
+            await cancelAlvivaReminders()
+              .catch(() => {});
+
             await supabase.auth.signOut();
             setToken(null);
             setCurrentUser(null);
