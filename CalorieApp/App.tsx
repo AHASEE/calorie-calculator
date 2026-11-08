@@ -579,8 +579,43 @@ function AppInner() {
         body: JSON.stringify({ foodName }),
       });
       const data = await res.json();
-      if (!data.success) { Alert.alert('Error', data.error || 'Could not get nutrition data'); setScanStage('idle'); return; }
-      setUsdaResult(data.nutrition);
+
+      if (!data.success) {
+        Alert.alert(
+          'Error',
+          data.error || 'Could not get nutrition data'
+        );
+        setScanStage('idle');
+        return;
+      }
+
+      const servingSize =
+        typeof data.nutrition?.servingSize === 'string'
+          ? data.nutrition.servingSize
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, '')
+          : '';
+
+      if (
+        ![
+          '100g',
+          '100gram',
+          '100grams',
+        ].includes(servingSize)
+      ) {
+        Alert.alert(
+          'Nutrition unavailable',
+          'This nutrition result could not be verified per 100g. Please try again.'
+        );
+        setScanStage('idle');
+        return;
+      }
+
+      setUsdaResult({
+        ...data.nutrition,
+        servingSize: '100g',
+      });
       setShowPortionModal(true);
       setScanStage('confirming');
     } catch (e) { Alert.alert('Error', 'Network error — please check your connection'); setScanStage('idle'); }
