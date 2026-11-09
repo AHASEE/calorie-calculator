@@ -117,6 +117,54 @@ const getFoodEmoji = (foodName: string): string => {
   return '🍱';
 };
 
+const getImageMimeType = (
+  asset: ImagePicker.ImagePickerAsset
+): 'image/jpeg' | 'image/png' | null => {
+  const declared =
+    typeof asset.mimeType === 'string'
+      ? asset.mimeType.toLowerCase()
+      : '';
+
+  if (
+    declared === 'image/jpeg' ||
+    declared === 'image/jpg'
+  ) {
+    return 'image/jpeg';
+  }
+
+  if (declared === 'image/png') {
+    return 'image/png';
+  }
+
+  const base64 =
+    asset.base64 || '';
+
+  if (base64.startsWith('iVBORw0KGgo')) {
+    return 'image/png';
+  }
+
+  if (base64.startsWith('/9j/')) {
+    return 'image/jpeg';
+  }
+
+  const sourceName =
+    `${asset.fileName || ''} ${asset.uri || ''}`
+      .toLowerCase();
+
+  if (
+    sourceName.includes('.jpg') ||
+    sourceName.includes('.jpeg')
+  ) {
+    return 'image/jpeg';
+  }
+
+  if (sourceName.includes('.png')) {
+    return 'image/png';
+  }
+
+  return null;
+};
+
 const getStreakBadge = (streak: number): string => {
   if (streak >= 100) return '🥇';
   if (streak >= 30)  return '🥈';
@@ -135,6 +183,8 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] =
+    useState<'image/jpeg' | 'image/png'>('image/jpeg');
   const [selectedLearnContent, setSelectedLearnContent] = useState<any>(null);
 
   const [scanStage, setScanStage] = useState<ScanStage>('idle');
@@ -505,15 +555,50 @@ function AppInner() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission Required', 'Please allow gallery access'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64: true, quality: 0.3 });
-    if (!result.canceled && result.assets[0]) { setImage(result.assets[0].uri); setImageBase64(result.assets[0].base64 ?? null); resetScan(); }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      base64: true,
+      quality: 0.3,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const mimeType = getImageMimeType(asset);
+
+      if (!mimeType) {
+        Alert.alert(
+          'Unsupported image format',
+          'Please choose a JPG, JPEG, or PNG image.'
+        );
+        return;
+      }
+
+      setImage(asset.uri);
+      setImageBase64(asset.base64 ?? null);
+      setImageMimeType(mimeType);
+      resetScan();
+    }
   };
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission Required', 'Please allow camera access'); return; }
-    const result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.3 });
-    if (!result.canceled && result.assets[0]) { setImage(result.assets[0].uri); setImageBase64(result.assets[0].base64 ?? null); resetScan(); }
+    const result = await ImagePicker.launchCameraAsync({
+      base64: true,
+      quality: 0.3,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const mimeType =
+        getImageMimeType(asset) ||
+        'image/jpeg';
+
+      setImage(asset.uri);
+      setImageBase64(asset.base64 ?? null);
+      setImageMimeType(mimeType);
+      resetScan();
+    }
   };
 
   const showImageOptions = () => Alert.alert('Select Image', '', [
@@ -542,7 +627,10 @@ function AppInner() {
           Authorization: `Bearer ${token}`,
           'X-Timezone': timezone,
         },
-        body: JSON.stringify({ imageBase64 }),
+        body: JSON.stringify({
+          imageBase64,
+          imageMimeType,
+        }),
       });
       const data = await res.json();
 
