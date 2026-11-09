@@ -31,6 +31,7 @@ import { Linking } from 'react-native';
 import { supabase } from './lib/supabase';
 import {
   cancelAlvivaReminders,
+  clearNotificationPreferences,
   restoreNotificationSchedules,
 } from './lib/notifications';
 
@@ -385,7 +386,7 @@ function AppInner() {
       }
     } catch (e) { console.log('Stats fetch error:', e); }
     finally { setLoadingStats(false); }
-  }, [token]);
+  }, [token, currentUser?.id]);
 
   const fetchStreak = useCallback(async () => {
     if (!token) return;
@@ -399,7 +400,7 @@ function AppInner() {
       const data = await res.json();
       if (data.success) setStreak(data.streak);
     } catch (e) { console.log('Streak fetch error:', e); }
-  }, [token]);
+  }, [token, currentUser?.id]);
 
   const updateStreak = useCallback(async () => {
     if (!token) return;
@@ -422,11 +423,13 @@ function AppInner() {
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (token && currentUser?.id) {
       fetchStats();
       fetchStreak();
 
-      restoreNotificationSchedules()
+      restoreNotificationSchedules(
+        currentUser.id
+      )
         .catch((error) => {
           console.log(
             'Notification restore error:',
@@ -444,12 +447,27 @@ function AppInner() {
     const handleNotificationResponse = (
       response: Notifications.NotificationResponse
     ) => {
-      const destination =
+      const notificationData =
         response.notification
           .request
           .content
-          .data
-          ?.destination;
+          .data;
+
+      const reminderUserId =
+        typeof notificationData?.userId ===
+        'string'
+          ? notificationData.userId
+          : null;
+
+      if (
+        reminderUserId &&
+        reminderUserId !== currentUser?.id
+      ) {
+        return;
+      }
+
+      const destination =
+        notificationData?.destination;
 
       if (destination === 'scan') {
         setActiveTab(1);
@@ -809,8 +827,11 @@ function AppInner() {
   };
 
   const handleAccountDeleted = () => {
-    cancelAlvivaReminders()
-      .catch(() => {});
+    if (currentUser?.id) {
+      clearNotificationPreferences(
+        currentUser.id
+      ).catch(() => {});
+    }
 
     passwordRecoveryRef.current = false;
     setToken(null);
@@ -844,8 +865,11 @@ function AppInner() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await cancelAlvivaReminders()
-              .catch(() => {});
+            if (currentUser?.id) {
+              await cancelAlvivaReminders(
+                currentUser.id
+              ).catch(() => {});
+            }
 
             await supabase.auth.signOut();
             setToken(null);
@@ -924,6 +948,7 @@ function AppInner() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ProfileScreen
         token={token!}
+        userId={currentUser!.id}
         onSave={() => fetchStats()}
         onEditGoal={() => setScreen('goalSetup')}
         onLogout={handleLogout}
