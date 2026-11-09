@@ -2,9 +2,17 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
-const PREFS_KEY = 'alviva_notification_preferences';
-const IDS_KEY = 'alviva_notification_schedule_ids';
+const LEGACY_PREFS_KEY = 'alviva_notification_preferences';
+const LEGACY_IDS_KEY = 'alviva_notification_schedule_ids';
 const CHANNEL_ID = 'alviva-reminders';
+
+const getPrefsKey = (
+  userId: string
+) => `alviva_notification_preferences:${userId}`;
+
+const getIdsKey = (
+  userId: string
+) => `alviva_notification_schedule_ids:${userId}`;
 
 export interface NotificationPreferences {
   water: boolean;
@@ -58,10 +66,35 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return requested.granted;
 }
 
-export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+export async function getNotificationPreferences(
+  userId: string
+): Promise<NotificationPreferences> {
   try {
-    const raw =
-      await AsyncStorage.getItem(PREFS_KEY);
+    const key =
+      getPrefsKey(userId);
+
+    let raw =
+      await AsyncStorage.getItem(key);
+
+    if (!raw) {
+      const legacy =
+        await AsyncStorage.getItem(
+          LEGACY_PREFS_KEY
+        );
+
+      if (legacy) {
+        raw = legacy;
+
+        await AsyncStorage.setItem(
+          key,
+          legacy
+        );
+
+        await AsyncStorage.removeItem(
+          LEGACY_PREFS_KEY
+        );
+      }
+    }
 
     if (!raw) {
       return DEFAULT_NOTIFICATION_PREFERENCES;
@@ -83,10 +116,14 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   }
 }
 
-async function getScheduleIds(): Promise<string[]> {
+async function getScheduleIds(
+  userId: string
+): Promise<string[]> {
   try {
     const raw =
-      await AsyncStorage.getItem(IDS_KEY);
+      await AsyncStorage.getItem(
+        getIdsKey(userId)
+      );
 
     if (!raw) {
       return [];
@@ -105,10 +142,9 @@ async function getScheduleIds(): Promise<string[]> {
   }
 }
 
-export async function cancelAlvivaReminders() {
-  const ids =
-    await getScheduleIds();
-
+async function cancelIds(
+  ids: string[]
+) {
   await Promise.all(
     ids.map(async (id) => {
       try {
@@ -119,11 +155,65 @@ export async function cancelAlvivaReminders() {
       }
     })
   );
+}
 
-  await AsyncStorage.removeItem(IDS_KEY);
+async function cancelLegacyReminders() {
+  try {
+    const raw =
+      await AsyncStorage.getItem(
+        LEGACY_IDS_KEY
+      );
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+
+      if (Array.isArray(parsed)) {
+        await cancelIds(
+          parsed.filter(
+            (value): value is string =>
+              typeof value === 'string'
+          )
+        );
+      }
+    }
+  } catch {
+    // Ignore malformed legacy storage.
+  } finally {
+    await AsyncStorage.removeItem(
+      LEGACY_IDS_KEY
+    );
+  }
+}
+
+export async function cancelAlvivaReminders(
+  userId: string
+) {
+  const ids =
+    await getScheduleIds(userId);
+
+  await cancelIds(ids);
+
+  await AsyncStorage.removeItem(
+    getIdsKey(userId)
+  );
+
+  await cancelLegacyReminders();
+}
+
+export async function clearNotificationPreferences(
+  userId: string
+) {
+  await cancelAlvivaReminders(
+    userId
+  );
+
+  await AsyncStorage.removeItem(
+    getPrefsKey(userId)
+  );
 }
 
 async function scheduleDaily(
+  userId: string,
   hour: number,
   minute: number,
   title: string,
@@ -142,6 +232,7 @@ async function scheduleDaily(
       data: {
         destination,
         source: 'alviva-reminder',
+        userId,
       },
     },
     trigger: {
@@ -160,6 +251,7 @@ async function scheduleDaily(
 }
 
 async function scheduleWeekly(
+  userId: string,
   weekday: number,
   hour: number,
   minute: number,
@@ -179,6 +271,7 @@ async function scheduleWeekly(
       data: {
         destination,
         source: 'alviva-reminder',
+        userId,
       },
     },
     trigger: {
@@ -198,9 +291,12 @@ async function scheduleWeekly(
 }
 
 export async function syncNotificationSchedules(
+  userId: string,
   preferences: NotificationPreferences
 ): Promise<boolean> {
-  await cancelAlvivaReminders();
+  await cancelAlvivaReminders(
+    userId
+  );
 
   const enabled =
     preferences.water ||
@@ -229,6 +325,7 @@ export async function syncNotificationSchedules(
   if (preferences.water) {
     ids.push(
       await scheduleDaily(
+        userId,
         11,
         0,
         'Water break 💧',
@@ -239,6 +336,7 @@ export async function syncNotificationSchedules(
 
     ids.push(
       await scheduleDaily(
+        userId,
         17,
         0,
         'Hydration check 💧',
@@ -251,6 +349,7 @@ export async function syncNotificationSchedules(
   if (preferences.meals) {
     ids.push(
       await scheduleDaily(
+        userId,
         9,
         0,
         'Breakfast check-in 🍳',
@@ -261,6 +360,7 @@ export async function syncNotificationSchedules(
 
     ids.push(
       await scheduleDaily(
+        userId,
         14,
         0,
         'Lunch check-in 🥗',
@@ -271,6 +371,7 @@ export async function syncNotificationSchedules(
 
     ids.push(
       await scheduleDaily(
+        userId,
         20,
         0,
         'Dinner check-in 🍽️',
@@ -283,6 +384,7 @@ export async function syncNotificationSchedules(
   if (preferences.evening) {
     ids.push(
       await scheduleDaily(
+        userId,
         21,
         0,
         'Daily check-in 🌙',
@@ -295,6 +397,7 @@ export async function syncNotificationSchedules(
   if (preferences.workout) {
     ids.push(
       await scheduleDaily(
+        userId,
         18,
         0,
         'Time to move 🚶',
@@ -307,6 +410,7 @@ export async function syncNotificationSchedules(
   if (preferences.streak) {
     ids.push(
       await scheduleDaily(
+        userId,
         20,
         30,
         'Streak check 🔥',
@@ -319,6 +423,7 @@ export async function syncNotificationSchedules(
   if (preferences.weight) {
     ids.push(
       await scheduleWeekly(
+        userId,
         1,
         9,
         0,
@@ -332,6 +437,7 @@ export async function syncNotificationSchedules(
   if (preferences.weeklyProgress) {
     ids.push(
       await scheduleWeekly(
+        userId,
         1,
         20,
         0,
@@ -343,7 +449,7 @@ export async function syncNotificationSchedules(
   }
 
   await AsyncStorage.setItem(
-    IDS_KEY,
+    getIdsKey(userId),
     JSON.stringify(ids)
   );
 
@@ -351,28 +457,37 @@ export async function syncNotificationSchedules(
 }
 
 export async function saveNotificationPreferences(
+  userId: string,
   preferences: NotificationPreferences
 ): Promise<boolean> {
   await AsyncStorage.setItem(
-    PREFS_KEY,
+    getPrefsKey(userId),
     JSON.stringify(preferences)
   );
 
   return syncNotificationSchedules(
+    userId,
     preferences
   );
 }
 
-export async function restoreNotificationSchedules() {
+export async function restoreNotificationSchedules(
+  userId: string
+) {
   const preferences =
-    await getNotificationPreferences();
+    await getNotificationPreferences(
+      userId
+    );
 
   return syncNotificationSchedules(
+    userId,
     preferences
   );
 }
 
-export async function sendTestNotification() {
+export async function sendTestNotification(
+  userId: string
+) {
   await ensureNotificationChannel();
 
   const permission =
@@ -390,6 +505,7 @@ export async function sendTestNotification() {
       data: {
         destination: 'home',
         source: 'alviva-reminder',
+        userId,
       },
     },
     trigger: null,
