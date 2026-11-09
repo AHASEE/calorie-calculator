@@ -210,11 +210,20 @@ function AppInner() {
   });
   const [streak, setStreak] = useState<StreakData>({ current: 0, longest: 0, isActiveToday: false });
   const passwordRecoveryRef = useRef(false);
+  const notificationUserIdRef =
+    useRef<string | null>(null);
 
   const timezone =
     Intl.DateTimeFormat()
       .resolvedOptions()
       .timeZone || 'UTC';
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      notificationUserIdRef.current =
+        currentUser.id;
+    }
+  }, [currentUser?.id]);
 
   useEffect(() => {
     let active = true;
@@ -342,6 +351,18 @@ function AppInner() {
             setScreen('home');
           }
         } else if (event === 'SIGNED_OUT') {
+          const lastUserId =
+            notificationUserIdRef.current;
+
+          if (lastUserId) {
+            cancelAlvivaReminders(
+              lastUserId
+            ).catch(() => {});
+          }
+
+          notificationUserIdRef.current =
+            null;
+
           setToken(null);
           setCurrentUser(null);
           setScreen('login');
@@ -386,7 +407,7 @@ function AppInner() {
       }
     } catch (e) { console.log('Stats fetch error:', e); }
     finally { setLoadingStats(false); }
-  }, [token, currentUser?.id]);
+  }, [token]);
 
   const fetchStreak = useCallback(async () => {
     if (!token) return;
@@ -400,7 +421,7 @@ function AppInner() {
       const data = await res.json();
       if (data.success) setStreak(data.streak);
     } catch (e) { console.log('Streak fetch error:', e); }
-  }, [token, currentUser?.id]);
+  }, [token]);
 
   const updateStreak = useCallback(async () => {
     if (!token) return;
@@ -437,7 +458,7 @@ function AppInner() {
           );
         });
     }
-  }, [token]);
+  }, [token, currentUser?.id]);
 
   useEffect(() => {
     if (!token) {
@@ -501,7 +522,7 @@ function AppInner() {
     return () => {
       subscription.remove();
     };
-  }, [token]);
+  }, [token, currentUser?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
