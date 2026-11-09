@@ -1210,7 +1210,12 @@ function AppInner() {
         )}
 
         {/* WATER TRACKER */}
-        {token && <WaterTracker token={token} />}
+        {token && currentUser?.id && (
+          <WaterTracker
+            token={token}
+            userId={currentUser.id}
+          />
+        )}
 
         {/* SCAN CARD */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Scan Food to Calculate Calories</Text>
