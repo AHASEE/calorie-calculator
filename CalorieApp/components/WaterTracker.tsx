@@ -9,14 +9,20 @@ import { API_URL } from '../constants/api';
 
 interface Props {
   token: string;
+  userId: string;
 }
 
-const GOAL_STORAGE_KEY = 'water_daily_goal';
+const getGoalStorageKey = (
+  userId: string
+) => `water_daily_goal:${userId}`;
 const DEFAULT_GOAL = 8;
 const MIN_GOAL = 4;
 const MAX_GOAL = 15;
 
-export default function WaterTracker({ token }: Props) {
+export default function WaterTracker({
+  token,
+  userId,
+}: Props) {
   const { colors } = useTheme();
   const [glasses, setGlasses] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(DEFAULT_GOAL);
@@ -28,21 +34,53 @@ export default function WaterTracker({ token }: Props) {
       .resolvedOptions()
       .timeZone || 'UTC';
 
-  // Load saved goal on mount
+  // Load this account's saved water goal.
   useEffect(() => {
+    let active = true;
+
+    setDailyGoal(DEFAULT_GOAL);
+
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(GOAL_STORAGE_KEY);
-        if (saved) setDailyGoal(parseInt(saved, 10));
-      } catch (e) { console.log('Goal load error:', e); }
+        const saved =
+          await AsyncStorage.getItem(
+            getGoalStorageKey(userId)
+          );
+
+        const parsed =
+          saved
+            ? parseInt(saved, 10)
+            : NaN;
+
+        if (
+          active &&
+          Number.isFinite(parsed) &&
+          parsed >= MIN_GOAL &&
+          parsed <= MAX_GOAL
+        ) {
+          setDailyGoal(parsed);
+        }
+      } catch (e) {
+        console.log(
+          'Goal load error:',
+          e
+        );
+      }
     })();
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const changeGoal = async (delta: number) => {
     const newGoal = Math.min(MAX_GOAL, Math.max(MIN_GOAL, dailyGoal + delta));
     setDailyGoal(newGoal);
     try {
-      await AsyncStorage.setItem(GOAL_STORAGE_KEY, String(newGoal));
+      await AsyncStorage.setItem(
+        getGoalStorageKey(userId),
+        String(newGoal)
+      );
     } catch (e) { console.log('Goal save error:', e); }
   };
 
