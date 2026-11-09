@@ -18,6 +18,7 @@ import {
 
 interface Props {
   token: string;
+  userId: string;
   onSave?: (suggestedGoal: number) => void;
   onEditGoal?: () => void;
   onLogout?: () => void;
@@ -52,7 +53,14 @@ const ACTIVITY_LEVELS = [
   { key: 'very_active', label: 'Very Active', desc: 'Hard exercise or physical job' },
 ];
 
-export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onAccountDeleted }: Props) {
+export default function ProfileScreen({
+  token,
+  userId,
+  onSave,
+  onEditGoal,
+  onLogout,
+  onAccountDeleted,
+}: Props) {
   const { colors } = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -125,10 +133,12 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
   useEffect(() => {
     fetchProfile();
 
-    getNotificationPreferences()
+    getNotificationPreferences(
+      userId
+    )
       .then(setNotificationPrefs)
       .catch(() => {});
-  }, []);
+  }, [userId]);
 
   const updateNotificationPreference = async (
     key: keyof NotificationPreferences,
@@ -160,7 +170,10 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
       };
 
       const scheduled =
-        await saveNotificationPreferences(next);
+        await saveNotificationPreferences(
+          userId,
+          next
+        );
 
       if (!scheduled && value) {
         Alert.alert(
@@ -201,7 +214,9 @@ export default function ProfileScreen({ token, onSave, onEditGoal, onLogout, onA
       }
 
       const sent =
-        await sendTestNotification();
+        await sendTestNotification(
+          userId
+        );
 
       if (!sent) {
         Alert.alert(
